@@ -1,0 +1,357 @@
+:root {
+  /* Dark Premium Theme Colors */
+  --bg-main: #000000;
+  --bg-gradient: radial-gradient(circle at 50% 0%, #0d0d1a 0%, #000000 70%);
+  --surface: rgba(255, 255, 255, 0.03);
+  --surface-hover: rgba(255, 255, 255, 0.08);
+  --border-glass: rgba(255, 255, 255, 0.08);
+  
+  --text-main: #f0f6fc;
+  --text-muted: #8b949e;
+  
+  /* Gemini Gradient Colors */
+  --primary: #58a6ff;
+  --primary-dark: #1f6feb;
+  --secondary: #9b72cb;
+  --danger: #ff7b72;
+  --success: #2ea043;
+  --warning: #d29922;
+
+  --gemini-grad: linear-gradient(135deg, #4285f4, #9b72cb, #d96570, #9b72cb, #4285f4);
+  --gemini-grad-subtle: linear-gradient(135deg, rgba(66, 133, 244, 0.2), rgba(155, 114, 203, 0.2), rgba(217, 101, 112, 0.2));
+  
+  --shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.6);
+  --shadow-glow: 0 0 20px rgba(155, 114, 203, 0.3);
+  
+  --radius-sm: 10px;
+  --radius-md: 18px;
+  --radius-lg: 28px;
+  --radius-full: 9999px;
+  
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-smooth: 500ms cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Quicksand', -apple-system, sans-serif;
+  background-color: var(--bg-main);
+  background-image: var(--bg-gradient);
+  color: var(--text-main);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow: hidden;
+  height: 100vh;
+  height: 100dvh;
+}
+
+#root {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* App Container */
+.app-container {
+  max-width: 480px;
+  margin: 0 auto;
+  width: 100%;
+  height: 100%;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: transparent;
+  box-shadow: 0 0 50px rgba(0, 0, 0, 0.5);
+}
+
+/* Background animated liquid mesh for app-container (Gemini Style) */
+.app-container::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: 
+    radial-gradient(circle at 50% 50%, rgba(66, 133, 244, 0.18), transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(155, 114, 203, 0.18), transparent 50%),
+    radial-gradient(circle at 20% 80%, rgba(217, 101, 112, 0.18), transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(66, 133, 244, 0.12), transparent 50%);
+  animation: geminiLiquid 20s cubic-bezier(0.4, 0, 0.2, 1) infinite alternate;
+  z-index: -1;
+  pointer-events: none;
+  filter: blur(40px);
+}
+
+@keyframes geminiLiquid {
+  0% { transform: scale(1) translate(0, 0) rotate(0deg); }
+  33% { transform: scale(1.1) translate(5%, 5%) rotate(5deg); }
+  66% { transform: scale(1.15) translate(-5%, 10%) rotate(-5deg); }
+  100% { transform: scale(1.25) translate(-10%, -5%) rotate(10deg); }
+}
+
+.content-area {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  padding-bottom: 100px;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Liquid Glass Cards */
+.card, .glass-panel {
+  background: rgba(25, 25, 35, 0.4);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-md);
+  padding: 18px;
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 16px;
+  transition: all var(--transition-smooth);
+  position: relative;
+  overflow: hidden;
+}
+
+.card::before, .glass-panel::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0) 100%);
+  pointer-events: none;
+}
+
+.card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md), var(--shadow-glow);
+  border-color: rgba(155, 114, 203, 0.3);
+  background: rgba(30, 30, 45, 0.5);
+}
+
+/* Headings */
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 700;
+  color: var(--text-main);
+  letter-spacing: -0.5px;
+}
+
+/* Typography styles for dark mode */
+.text-muted {
+  color: var(--text-muted) !important;
+}
+
+/* Buttons */
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+}
+
+/* Gemini Primary Button */
+.btn-primary {
+  background: var(--gemini-grad);
+  background-size: 300% 300%;
+  color: white;
+  padding: 14px 28px;
+  border-radius: var(--radius-full);
+  font-weight: 700;
+  font-size: 16px;
+  border: none;
+  cursor: pointer;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  position: relative;
+  transition: all var(--transition-normal);
+  box-shadow: 0 4px 15px rgba(155, 114, 203, 0.4);
+  animation: geminiGradient 8s ease infinite;
+}
+
+.btn-primary:hover:not(:disabled) {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 8px 25px rgba(155, 114, 203, 0.6);
+}
+
+.btn-primary:active:not(:disabled) {
+  transform: translateY(1px) scale(0.98);
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  animation: none;
+  background: #2a2a35;
+  box-shadow: none;
+  color: var(--text-muted);
+}
+
+@keyframes geminiGradient {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Gemini Input Fields */
+input, textarea, select {
+  font-family: inherit;
+  width: 100%;
+  padding: 14px 18px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-glass);
+  background: rgba(15, 15, 20, 0.6);
+  color: var(--text-main);
+  font-size: 16px;
+  outline: none;
+  transition: all var(--transition-normal);
+  backdrop-filter: blur(10px);
+}
+
+input:focus, textarea:focus, select:focus {
+  background: rgba(20, 20, 30, 0.8);
+  border-color: transparent;
+  box-shadow: 0 0 0 2px var(--bg-main), 0 0 0 4px #9b72cb;
+}
+
+/* Special Gemini Focus Wrapper (Optional but great for effect) */
+.gemini-input-wrapper {
+  position: relative;
+  border-radius: var(--radius-md);
+  padding: 2px;
+  background: transparent;
+  transition: all var(--transition-normal);
+  z-index: 1;
+}
+
+.gemini-input-wrapper::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  border-radius: inherit;
+  background: var(--gemini-grad);
+  background-size: 300% 300%;
+  z-index: -1;
+  opacity: 0;
+  transition: opacity var(--transition-normal);
+  animation: geminiGradient 4s ease infinite;
+}
+
+.gemini-input-wrapper:focus-within::before {
+  opacity: 1;
+}
+
+.gemini-input-wrapper input {
+  border: none;
+  margin: 0;
+}
+
+.gemini-input-wrapper:focus-within input {
+  box-shadow: none;
+}
+
+textarea {
+  resize: vertical;
+  line-height: 1.6;
+}
+
+textarea::placeholder, input::placeholder {
+  color: var(--text-muted);
+  opacity: 0.8;
+}
+
+select {
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238b949e' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  background-size: 1em;
+}
+select option {
+  background-color: var(--bg-main);
+  color: var(--text-main);
+}
+
+/* Hide scrollbars */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Global Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(15px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.page-container {
+  animation: fadeIn var(--transition-smooth) backwards;
+}
+
+/* Custom Checkbox/Radio styling for Dark theme */
+input[type="color"] {
+  padding: 0;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 2px solid var(--border-glass);
+}
+input[type="color"]::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+input[type="color"]::-webkit-color-swatch {
+  border: none;
+}
+
+/* Ensure overrides for styles hardcoded in components */
+[style*="background-color: white"], [style*="backgroundColor: 'white'"] {
+  background-color: rgba(30, 30, 45, 0.7) !important;
+  color: var(--text-main) !important;
+}
+
+[style*="background: 'white'"], [style*="background: white"] {
+  background: rgba(30, 30, 45, 0.7) !important;
+}
+
+[style*="background-color: #ffffff"] {
+  background-color: rgba(30, 30, 45, 0.7) !important;
+}
+
+[style*="color: '#2e7d32'"] { color: #57cc99 !important; }
+[style*="color: '#ffc107'"] { color: #ffd166 !important; }
+[style*="color: '#ff6b6b'"] { color: #ff7b72 !important; }
+[style*="color: '#2b4162'"] { color: var(--text-main) !important; }
+
+[style*="border: '1px solid #f8f9fa'"] {
+  border: 1px solid var(--border-glass) !important;
+}
+
+[style*="border: '1px solid #eee'"] {
+  border: 1px solid var(--border-glass) !important;
+}
+
+/* Utilities for text colors */
+.text-main { color: var(--text-main); }
+.text-muted { color: var(--text-muted); }
+.text-primary { color: var(--primary); }
+.text-gemini {
+  background: var(--gemini-grad);
+  background-size: 300% 300%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: geminiGradient 8s ease infinite;
+}
