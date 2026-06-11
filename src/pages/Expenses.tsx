@@ -489,19 +489,17 @@ const Expenses: React.FC = () => {
       {showSavingsModal && (
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          backgroundColor: 'var(--bg-main)', zIndex: 3000,
-          display: 'flex', flexDirection: 'column',
-          animation: 'slideInRight 0.3s ease-out',
+          backgroundColor: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(10px)', zIndex: 3000,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px',
+          animation: 'fadeIn 0.2s ease-out',
         }}>
-          <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', padding: '20px', backgroundColor: 'rgba(15, 15, 20, 0.8)', backdropFilter: 'blur(10px)', zIndex: 10, borderBottom: '1px solid var(--border-glass)' }}>
-            <button onClick={() => setShowSavingsModal(false)} style={{ background: 'none', border: 'none', padding: '5px', marginRight: '15px' }}>
-              <ChevronLeft size={24} color="var(--text-main)" />
-            </button>
-            <h3 style={{ margin: 0, flex: 1, textAlign: 'center', color: 'var(--text-main)' }}>Chi Tiết Tiết Kiệm</h3>
-            <div style={{ width: '34px' }}></div>
-          </div>
-          
-          <div style={{ flex: 1, padding: '20px', overflowY: 'auto' }}>
+          <div className="card glass-panel" style={{ width: '100%', maxHeight: '90vh', display: 'flex', flexDirection: 'column', padding: '24px', background: '#14141e', borderRadius: '24px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px', alignItems: 'center' }}>
+              <h3 style={{ margin: 0, color: 'white' }}>Chi Tiết Tiết Kiệm</h3>
+              <button onClick={() => setShowSavingsModal(false)} style={{ background: 'none', border: 'none', color: 'white', fontSize: '20px', fontWeight: 'bold', cursor: 'pointer' }}>X</button>
+            </div>
+            
+            <div className="no-scrollbar" style={{ overflowY: 'auto', flex: 1, paddingRight: '4px' }}>
             <div className="card" style={{ padding: '20px', borderRadius: '20px', marginBottom: '20px', textAlign: 'center', background: 'linear-gradient(135deg, var(--success) 0%, #2ecc71 100%)', color: 'white' }}>
               <p style={{ margin: '0 0 8px 0', opacity: 0.9 }}>Tổng Quỹ Tích Lũy</p>
               <h1 style={{ margin: 0, fontSize: '36px' }}>{budgetStatus.accumulatedSavings > 0 ? '+' : ''}{budgetStatus.accumulatedSavings?.toLocaleString('vi-VN')} đ</h1>
@@ -557,6 +555,7 @@ const Expenses: React.FC = () => {
             ) : (
               <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '14px', marginTop: '30px' }}>Chưa có dữ liệu tích lũy từ các tháng trước.</p>
             )}
+          </div>
           </div>
         </div>
       )}

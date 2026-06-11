@@ -89,23 +89,12 @@ const BottomNav: React.FC = () => {
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#000', zIndex: 9999, display: 'flex', flexDirection: 'column' }}>
           <div style={{ padding: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(0,0,0,0.5)', zIndex: 10 }}>
             <button onClick={() => setEditingPhoto(null)} style={{ color: 'white', background: 'none', border: 'none' }}><X size={28} /></button>
-            <h3 style={{ margin: 0, color: 'white' }}>Chọn bộ lọc</h3>
+            <h3 style={{ margin: 0, color: 'white' }}>Lưu ảnh chụp này?</h3>
             <button onClick={saveFilteredPhoto} style={{ color: '#58a6ff', background: 'none', border: 'none' }}><Check size={28} /></button>
           </div>
           
           <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', padding: '20px' }}>
             <img src={editingPhoto} alt="Preview" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', filter: selectedFilter.style, transition: 'filter 0.3s ease', borderRadius: '16px', boxShadow: '0 10px 40px rgba(0,0,0,0.5)' }} />
-          </div>
-
-          <div className="no-scrollbar" style={{ height: '120px', padding: '15px 10px', display: 'flex', gap: '15px', overflowX: 'auto', background: 'rgba(20,20,25,0.9)', backdropFilter: 'blur(10px)', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-            {FILTERS.map(f => (
-              <div key={f.id} onClick={() => setSelectedFilter(f)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', cursor: 'pointer', minWidth: '70px' }}>
-                <div style={{ width: '60px', height: '60px', borderRadius: '50%', overflow: 'hidden', border: selectedFilter.id === f.id ? '3px solid #58a6ff' : '2px solid transparent', transition: 'all 0.2s', padding: selectedFilter.id === f.id ? '2px' : '0' }}>
-                  <img src={editingPhoto} alt={f.name} style={{ width: '100%', height: '100%', objectFit: 'cover', filter: f.style, borderRadius: '50%' }} />
-                </div>
-                <span style={{ color: selectedFilter.id === f.id ? '#58a6ff' : 'white', fontSize: '12px', fontWeight: selectedFilter.id === f.id ? 'bold' : 'normal' }}>{f.name}</span>
-              </div>
-            ))}
           </div>
         </div>
       )}

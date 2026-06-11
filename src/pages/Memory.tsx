@@ -105,13 +105,27 @@ const Memory: React.FC = () => {
             <option value="2024">2024</option>
           </select>
         </div>
-        <div style={{ display: 'flex', gap: '15px' }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '13px', cursor: 'pointer' }}>
-            <input type="checkbox" checked={filterShowExpense} onChange={e => setFilterShowExpense(e.target.checked)} /> Có chi tiêu
-          </label>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '13px', cursor: 'pointer' }}>
-            <input type="checkbox" checked={filterShowDiary} onChange={e => setFilterShowDiary(e.target.checked)} /> Có nhật ký
-          </label>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button 
+            onClick={() => setFilterShowExpense(!filterShowExpense)}
+            style={{ 
+              flex: 1, padding: '10px', borderRadius: '12px', fontSize: '13px', fontWeight: 'bold', border: 'none', transition: 'all 0.2s', cursor: 'pointer',
+              backgroundColor: filterShowExpense ? 'var(--danger)' : 'rgba(255,255,255,0.05)',
+              color: filterShowExpense ? 'white' : 'var(--text-muted)',
+              boxShadow: filterShowExpense ? '0 4px 12px rgba(255, 71, 87, 0.3)' : 'none'
+            }}>
+            Có chi tiêu
+          </button>
+          <button 
+            onClick={() => setFilterShowDiary(!filterShowDiary)}
+            style={{ 
+              flex: 1, padding: '10px', borderRadius: '12px', fontSize: '13px', fontWeight: 'bold', border: 'none', transition: 'all 0.2s', cursor: 'pointer',
+              backgroundColor: filterShowDiary ? 'var(--primary)' : 'rgba(255,255,255,0.05)',
+              color: filterShowDiary ? 'white' : 'var(--text-muted)',
+              boxShadow: filterShowDiary ? '0 4px 12px rgba(88, 166, 255, 0.3)' : 'none'
+            }}>
+            Có nhật ký
+          </button>
         </div>
       </div>
 
