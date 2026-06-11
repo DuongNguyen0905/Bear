@@ -71,10 +71,63 @@ export const financeService = {
     await db.settings.put({ key, value });
   },
 
+  async getAccumulatedSavingsDetails(targetYear: string, targetMonth: string) {
+    const targetPrefix = `${targetYear}-${targetMonth.padStart(2, '0')}`;
+    
+    // Tìm tất cả các giao dịch
+    const allTrans = await db.transactions.toArray();
+    
+    // Group transactions by YYYY-MM
+    const monthlyStats: Record<string, { income: number, expense: number }> = {};
+    for (const t of allTrans) {
+       const mKey = t.dateKey.substring(0, 7); // "YYYY-MM"
+       if (mKey < targetPrefix) {
+         if (!monthlyStats[mKey]) monthlyStats[mKey] = { income: 0, expense: 0 };
+         if (t.type === 'income') monthlyStats[mKey].income += t.amount;
+         else monthlyStats[mKey].expense += t.amount;
+       }
+    }
+
+    const settings = await db.settings.toArray();
+    const initialBalanceKeys = settings.filter(s => s.key.startsWith('initialBalance_'));
+    
+    const pastMonths = new Set<string>();
+    Object.keys(monthlyStats).forEach(k => pastMonths.add(k));
+    initialBalanceKeys.forEach(s => {
+       const mKey = s.key.split('_')[1]; // "YYYY-MM"
+       if (mKey < targetPrefix) pastMonths.add(mKey);
+    });
+
+    const details = [];
+    let totalSavings = 0;
+
+    // Sắp xếp tháng gần nhất lên trước
+    const sortedMonths = Array.from(pastMonths).sort((a, b) => b.localeCompare(a));
+
+    for (const mKey of sortedMonths) {
+      const initBalSetting = settings.find(s => s.key === `initialBalance_${mKey}`);
+      const initBal = initBalSetting ? Number(initBalSetting.value) : 0;
+      const stats = monthlyStats[mKey] || { income: 0, expense: 0 };
+      
+      const monthSaving = initBal + stats.income - stats.expense;
+      totalSavings += monthSaving;
+
+      details.push({
+        month: mKey,
+        income: stats.income,
+        expense: stats.expense,
+        initialBalance: initBal,
+        saving: monthSaving
+      });
+    }
+
+    return { totalSavings, details };
+  },
+
   /**
    * Daily Budget Engine Logic
    */
-  async getBudgetStatus() {
+  async getBudgetStatus(year: string, month: string) {
     const salaryDay = await this.getSetting<number>('salaryDay', 5); // Default mùng 5 nhận lương
     
     const now = new Date();
@@ -88,19 +141,25 @@ export const financeService = {
     const timeDiff = nextSalaryDate.getTime() - now.getTime();
     const daysToSalary = Math.ceil(timeDiff / (1000 * 3600 * 24));
 
-    // Lấy số dư tổng (hoặc số dư tháng hiện tại tuỳ chiến lược). 
-    // Theo yêu cầu "Số dư hiện tại / Ngày còn lại"
-    // Tính tổng tất cả thu chi từ trước tới nay để ra Số Dư Khả Dụng thực tế
-    let allIncome = 0;
-    let allExpense = 0;
-    await db.transactions.each(t => {
-      if (t.type === 'income') allIncome += t.amount;
-      else allExpense += t.amount;
+    // Tính Current Month Balance
+    const monthlyTrans = await this.getTransactionsByMonth(year, month);
+    let monthIncome = 0;
+    let monthExpense = 0;
+    monthlyTrans.forEach(t => {
+      if (t.type === 'income') monthIncome += t.amount;
+      else monthExpense += t.amount;
     });
 
-    const currentGlobalBalance = allIncome - allExpense;
+    const monthKey = `${year}-${month.padStart(2, '0')}`;
+    const initialBalance = await this.getSetting<number>(`initialBalance_${monthKey}`, 0);
+    const currentGlobalBalance = initialBalance + monthIncome - monthExpense;
 
-    // Tính toán ngân sách mỗi ngày
+    // Tính quỹ tiết kiệm tích luỹ
+    const accumulatedData = await this.getAccumulatedSavingsDetails(year, month);
+    const accumulatedSavings = accumulatedData.totalSavings;
+    const accumulatedSavingsDetails = accumulatedData.details;
+
+    // Tính toán ngân sách mỗi ngày (dựa trên số dư THÁNG NÀY)
     const safeDailyLimit = daysToSalary > 0 ? Math.floor(currentGlobalBalance / daysToSalary) : 0;
 
     // Chi tiêu hôm nay
@@ -114,18 +173,18 @@ export const financeService = {
     
     if (todayExpense > safeDailyLimit) {
       status = 'danger';
-      message = `Cảnh báo: Hôm nay bạn đã tiêu lẹm ${ (todayExpense - safeDailyLimit).toLocaleString('vi-VN') }đ so với ngân sách an toàn.`;
+      message = `Cảnh báo: Hôm nay bạn đã tiêu lẹm ${ (todayExpense - safeDailyLimit).toLocaleString('vi-VN') }đ.`;
     } else if (todayExpense === 0) {
       status = 'success';
       message = `Tuyệt vời! Hôm nay bạn chưa tiêu đồng nào, hãy tiếp tục phát huy!`;
     } else {
       status = 'success';
-      message = `Tốt lắm! Hôm nay bạn đã tiết kiệm được ${ (safeDailyLimit - todayExpense).toLocaleString('vi-VN') }đ so với ngân sách.`;
+      message = `Tốt lắm! Hôm nay bạn đã tiết kiệm được ${ (safeDailyLimit - todayExpense).toLocaleString('vi-VN') }đ.`;
     }
 
     if (currentGlobalBalance <= 0) {
       status = 'danger';
-      message = 'Bạn đang cạn kiệt tiền! Hãy cẩn trọng.';
+      message = 'Bạn đang cạn kiệt tiền khả dụng của tháng này! Hãy cẩn trọng.';
     }
 
     return {
@@ -135,7 +194,9 @@ export const financeService = {
       todayExpense,
       message,
       status,
-      salaryDay
+      salaryDay,
+      accumulatedSavings,
+      accumulatedSavingsDetails
     };
   }
 };

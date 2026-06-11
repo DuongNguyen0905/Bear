@@ -25,6 +25,7 @@ const Home: React.FC = () => {
 
   const [showReview, setShowReview] = useState(false);
   const [reviewData, setReviewData] = useState<any>(null);
+  const [reviewMonth, setReviewMonth] = useState<string>('');
   
   const [streak, setStreak] = useState(0);
   const [safeDailyLimit, setSafeDailyLimit] = useState(0);
@@ -45,7 +46,9 @@ const Home: React.FC = () => {
     const allGoals = await goalService.getAllGoals();
     setGoals(allGoals);
 
-    const bStatus = await financeService.getBudgetStatus();
+    const year = dateKey.substring(0, 4);
+    const month = dateKey.substring(5, 7);
+    const bStatus = await financeService.getBudgetStatus(year, month);
     setSafeDailyLimit(bStatus.safeDailyLimit);
     
     // Streak logic
@@ -143,11 +146,20 @@ const Home: React.FC = () => {
     loadData();
   };
 
-  const generateMonthlyReview = async () => {
+  const handleOpenReview = async () => {
     const now = new Date();
     now.setMonth(now.getMonth() - 1);
     const year = now.getFullYear().toString();
     const month = (now.getMonth() + 1).toString().padStart(2, '0');
+    const defaultMonth = `${year}-${month}`;
+    setReviewMonth(defaultMonth);
+    await generateMonthlyReview(defaultMonth);
+    setShowReview(true);
+  };
+
+  const generateMonthlyReview = async (monthStrInput: string) => {
+    const year = monthStrInput.substring(0, 4);
+    const month = monthStrInput.substring(5, 7);
 
     const stats = await financeService.getDashboardStats(year, month);
     const trans = await financeService.getTransactionsByMonth(year, month);
@@ -167,7 +179,6 @@ const Home: React.FC = () => {
       monthStr: `${month}/${year}`,
       stats, topCat, topCatAmount: catTotals[topCat] || 0, totalPhotos, totalDiaries
     });
-    setShowReview(true);
   };
 
   return (
@@ -180,7 +191,7 @@ const Home: React.FC = () => {
           </h1>
           <p style={{ margin: '4px 0 0 0', color: 'var(--text-muted)', fontSize: '15px' }}>Sẵn sàng cho một ngày mới?</p>
         </div>
-        <button onClick={generateMonthlyReview} style={{ background: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(10px)', border: '1px solid var(--border-glass)', borderRadius: '50%', width: '44px', height: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)', cursor: 'pointer', boxShadow: '0 4px 15px rgba(0,0,0,0.2)', transition: 'all 0.2s' }}>
+        <button onClick={handleOpenReview} style={{ background: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(10px)', border: '1px solid var(--border-glass)', borderRadius: '50%', width: '44px', height: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)', cursor: 'pointer', boxShadow: '0 4px 15px rgba(0,0,0,0.2)', transition: 'all 0.2s' }}>
           <Award size={20} />
         </button>
       </div>
@@ -313,8 +324,18 @@ const Home: React.FC = () => {
       {showReview && reviewData && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'var(--bg-main)', zIndex: 5000, display: 'flex', flexDirection: 'column', animation: 'slideInRight 0.3s ease-out', overflowY: 'auto' }}>
           <div style={{ padding: '20px', backgroundColor: 'rgba(15, 15, 20, 0.8)', backdropFilter: 'blur(20px)', display: 'flex', alignItems: 'center', position: 'sticky', top: 0, zIndex: 10 }}>
-            <button onClick={() => setShowReview(false)} style={{ marginRight: '15px', color: 'white' }}><ChevronLeft size={24} /></button>
-            <h3 style={{ margin: 0, flex: 1, textAlign: 'center' }}>Tháng {reviewData.monthStr}</h3>
+            <button onClick={() => setShowReview(false)} style={{ marginRight: '15px', color: 'white', background: 'none', border: 'none' }}><ChevronLeft size={24} /></button>
+            <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
+              <input 
+                type="month" 
+                value={reviewMonth}
+                onChange={(e) => {
+                   setReviewMonth(e.target.value);
+                   generateMonthlyReview(e.target.value);
+                }}
+                style={{ background: 'transparent', border: 'none', color: 'white', fontSize: '18px', fontWeight: 'bold', outline: 'none', textAlign: 'center' }}
+              />
+            </div>
             <div style={{ width: '24px' }}></div>
           </div>
           
