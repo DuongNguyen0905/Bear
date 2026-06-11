@@ -42,7 +42,9 @@ const Memory: React.FC = () => {
 
     // Lọc bỏ những ngày trống hoàn toàn (không ảnh, không nhật ký, không chi tiêu)
     mems = mems.filter(m => {
-      const hasContent = (m.diary && m.diary.trim() !== '') || (transByDate[m.dateKey] && transByDate[m.dateKey].length > 0);
+      const hasContent = (m.diary && m.diary.trim() !== '') || 
+                         (transByDate[m.dateKey] && transByDate[m.dateKey].length > 0) ||
+                         (m.photos && m.photos.length > 0);
       return hasContent;
     });
 
@@ -132,6 +134,25 @@ const Memory: React.FC = () => {
               </div>
 
               <div style={{ padding: '16px' }}>
+                {/* Ảnh (Photos) */}
+                {(!filterShowExpense && !filterShowDiary) && entry.photos && entry.photos.length > 0 && (
+                  <div style={{ marginBottom: '16px', display: 'grid', gridTemplateColumns: entry.photos.length === 1 ? '1fr' : '1fr 1fr', gap: '10px' }}>
+                    {entry.photos.map((photo: any, idx: number) => (
+                      <div key={idx} style={{ position: 'relative', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+                        <img src={photo.url} alt="Kỷ niệm" style={{ width: '100%', height: entry.photos.length === 1 ? 'auto' : '150px', objectFit: 'cover', display: 'block' }} />
+                        {photo.caption && (
+                          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '10px 8px 8px', background: 'linear-gradient(transparent, rgba(0,0,0,0.8))', color: 'white', fontSize: '13px', fontWeight: '500' }}>
+                            {photo.caption}
+                          </div>
+                        )}
+                        <div style={{ position: 'absolute', top: '8px', right: '8px', padding: '4px 8px', background: 'rgba(0,0,0,0.6)', color: 'white', fontSize: '11px', borderRadius: '12px', backdropFilter: 'blur(4px)' }}>
+                          {photo.time?.split(' lúc ')[1] || ''}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
                 {/* Nhật ký */}
                 {(!filterShowExpense || filterShowDiary) && entry.diary && (
                   <div style={{ marginBottom: '16px' }}>

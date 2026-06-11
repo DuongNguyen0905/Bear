@@ -35,7 +35,7 @@ const BottomNav: React.FC = () => {
     const reader = new FileReader();
     reader.onload = (event) => {
       setEditingPhoto(event.target?.result as string);
-      setSelectedFilter(FILTERS[0]);
+      setSelectedFilter(FILTERS[2]); // Default to 'vivid' (Đậm đà)
     };
     reader.readAsDataURL(file);
     e.target.value = '';
@@ -57,8 +57,6 @@ const BottomNav: React.FC = () => {
         }
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
         const finalImageUrl = canvas.toDataURL('image/jpeg', 0.9);
-
-        const caption = window.prompt('Đã chụp xong! Nhập cảm nghĩ cho bức ảnh này (để trống cũng được):');
         
         try {
           const entry = await memoryService.getByDate(dateKey);
@@ -70,7 +68,7 @@ const BottomNav: React.FC = () => {
           const newPhotoData = {
             url: finalImageUrl,
             time: fullDate,
-            caption: caption ? caption.trim() : ''
+            caption: ''
           };
 
           await memoryService.updatePartial(dateKey, { photos: [newPhotoData, ...currentPhotos] });

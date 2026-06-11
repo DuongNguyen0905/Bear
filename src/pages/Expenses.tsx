@@ -391,6 +391,7 @@ const Expenses: React.FC = () => {
                 <Tooltip 
                   formatter={(value: number) => [`${value.toLocaleString('vi-VN')} đ`, 'Chi tiêu']}
                   contentStyle={{ backgroundColor: 'rgba(15, 15, 20, 0.9)', borderRadius: '8px', border: 'none', color: 'white' }}
+                  itemStyle={{ color: 'white' }}
                 />
                 <Legend wrapperStyle={{ fontSize: '12px' }} />
               </PieChart>
@@ -456,7 +457,7 @@ const Expenses: React.FC = () => {
           <div className="card glass-panel" style={{ width: '100%', padding: '24px', background: '#14141e' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
               <h3 style={{ margin: 0, color: 'white' }}>Cấu hình Hạn mức</h3>
-              <button onClick={() => setShowBudgetModal(false)} style={{ background: 'none', border: 'none' }}>X</button>
+              <button onClick={() => setShowBudgetModal(false)} style={{ background: 'none', border: 'none', color: 'white', fontSize: '20px', fontWeight: 'bold', cursor: 'pointer' }}>X</button>
             </div>
             
             <h4 style={{ margin: '0 0 10px 0', color: 'var(--text-main)' }}>Số dư ban đầu tháng {format(selectedDate, 'MM/yyyy')}</h4>
