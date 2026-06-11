@@ -9,24 +9,46 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
+      injectRegister: 'auto',
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,ico,png,svg}']
+      },
       manifest: {
-        name: 'Sổ Tay Của Tớ',
+        id: '/Bear/',
+        name: 'Sổ Tay',
         short_name: 'Sổ Tay',
         description: 'Ứng dụng ghi chép nhật ký, ảnh, cảm xúc và chi tiêu hàng ngày',
         theme_color: '#ffb5a7',
         background_color: '#fdfaf9',
         display: 'standalone',
         orientation: 'portrait',
+        start_url: '/Bear/',
         icons: [
           {
-            src: 'favicon.svg', // using existing favicon
+            src: 'icon-192x192.png',
             sizes: '192x192',
-            type: 'image/svg+xml'
+            type: 'image/png',
+            purpose: 'any maskable'
           },
           {
-            src: 'favicon.svg',
+            src: 'icon-512x512.png',
             sizes: '512x512',
-            type: 'image/svg+xml'
+            type: 'image/png',
+            purpose: 'any maskable'
+          }
+        ],
+        screenshots: [
+          {
+            src: 'screenshot-1.png',
+            sizes: '1080x1920',
+            type: 'image/png',
+            form_factor: 'narrow'
+          },
+          {
+            src: 'screenshot-2.png',
+            sizes: '1080x1920',
+            type: 'image/png',
+            form_factor: 'narrow'
           }
         ]
       }
