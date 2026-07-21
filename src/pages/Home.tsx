@@ -5,7 +5,14 @@ import { goalService } from '../services/goalService';
 import { financeService } from '../services/financeService';
 import DateNavigator from '../components/DateNavigator';
 import CustomCalendar from '../components/CustomCalendar';
-import { Plus, Trash2, ClipboardList, Target, Award, ChevronLeft, X, TrendingUp, TrendingDown, Image as ImageIcon, BookOpen, Flame, Wallet, Trophy } from 'lucide-react';
+import RoundedPicker from '../components/RoundedPicker';
+
+const REVIEW_MONTH_OPTIONS = Array.from({ length: 12 }, (_, i) => ({ value: String(i + 1).padStart(2, '0'), label: `Tháng ${i + 1}` }));
+const REVIEW_YEAR_OPTIONS = Array.from({ length: 5 }, (_, i) => {
+  const y = new Date().getFullYear() - i;
+  return { value: String(y), label: `Năm ${y}` };
+});
+import { Plus, Trash2, ClipboardList, Target, Award, ChevronLeft, ChevronDown, X, TrendingUp, TrendingDown, Image as ImageIcon, BookOpen, Flame, Wallet, Trophy } from 'lucide-react';
 import { db } from '../utils/db';
 import type { Goal, Task } from '../utils/db';
 import { useNavigate } from 'react-router-dom';
@@ -20,6 +27,8 @@ const Home: React.FC = () => {
   const [newTask, setNewTask] = useState('');
   const [taskDate, setTaskDate] = useState(dateKey);
   const [showTaskCalendar, setShowTaskCalendar] = useState(false);
+  const [showReviewMonthPicker, setShowReviewMonthPicker] = useState(false);
+  const [showReviewYearPicker, setShowReviewYearPicker] = useState(false);
 
   const [goals, setGoals] = useState<Goal[]>([]);
   const [showGoalModal, setShowGoalModal] = useState(false);
@@ -442,16 +451,47 @@ const Home: React.FC = () => {
             </div>
           ) : reviewData && (
             <div style={{ padding: '20px', paddingBottom: '100px' }}>
-              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
-                <input
-                  type="month"
-                  value={reviewMonth}
-                  onChange={(e) => {
-                    setReviewMonth(e.target.value);
-                    generateMonthlyReview(e.target.value);
-                  }}
-                />
+              <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', marginBottom: '20px' }}>
+                <button
+                  onClick={() => setShowReviewMonthPicker(true)}
+                  style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '10px 16px', borderRadius: 'var(--radius-full)', background: 'rgba(255,255,255,0.06)', border: '1px solid var(--border-glass)', color: 'var(--text-main)', fontSize: '13px', fontWeight: 700 }}
+                >
+                  Tháng {reviewMonth.substring(5, 7)} <ChevronDown size={14} />
+                </button>
+                <button
+                  onClick={() => setShowReviewYearPicker(true)}
+                  style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '10px 16px', borderRadius: 'var(--radius-full)', background: 'rgba(255,255,255,0.06)', border: '1px solid var(--border-glass)', color: 'var(--text-main)', fontSize: '13px', fontWeight: 700 }}
+                >
+                  Năm {reviewMonth.substring(0, 4)} <ChevronDown size={14} />
+                </button>
               </div>
+
+              {showReviewMonthPicker && (
+                <RoundedPicker
+                  title="Chọn tháng"
+                  options={REVIEW_MONTH_OPTIONS}
+                  value={reviewMonth.substring(5, 7)}
+                  onChange={(m) => {
+                    const newMonth = `${reviewMonth.substring(0, 4)}-${m}`;
+                    setReviewMonth(newMonth);
+                    generateMonthlyReview(newMonth);
+                  }}
+                  onClose={() => setShowReviewMonthPicker(false)}
+                />
+              )}
+              {showReviewYearPicker && (
+                <RoundedPicker
+                  title="Chọn năm"
+                  options={REVIEW_YEAR_OPTIONS}
+                  value={reviewMonth.substring(0, 4)}
+                  onChange={(y) => {
+                    const newMonth = `${y}-${reviewMonth.substring(5, 7)}`;
+                    setReviewMonth(newMonth);
+                    generateMonthlyReview(newMonth);
+                  }}
+                  onClose={() => setShowReviewYearPicker(false)}
+                />
+              )}
 
               <div className="card" style={{ background: 'var(--gemini-grad)', backgroundSize: '300% 300%', animation: 'geminiGradient 8s ease infinite', color: 'white', padding: '40px 20px', borderRadius: '30px', textAlign: 'center', marginBottom: '24px', border: 'none' }}>
                 <Award size={56} style={{ marginBottom: '16px', filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.3))' }} />

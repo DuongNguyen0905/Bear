@@ -1,7 +1,20 @@
 import React, { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../utils/db';
-import { Lock, BookOpen, Calendar, Filter, Receipt } from 'lucide-react';
+import { Lock, BookOpen, Calendar, Filter, Receipt, ChevronDown } from 'lucide-react';
+import RoundedPicker from '../components/RoundedPicker';
+
+const MONTH_OPTIONS = [
+  { value: 'all', label: 'Tất cả các tháng' },
+  ...Array.from({ length: 12 }, (_, i) => ({ value: String(i + 1), label: `Tháng ${i + 1}` }))
+];
+
+const YEAR_OPTIONS = [
+  { value: 'all', label: 'Tất cả các năm' },
+  { value: '2026', label: '2026' },
+  { value: '2025', label: '2025' },
+  { value: '2024', label: '2024' }
+];
 
 const Memory: React.FC = () => {
   const [password, setPassword] = useState('');
@@ -10,6 +23,8 @@ const Memory: React.FC = () => {
   const [filterYear, setFilterYear] = useState('all');
   const [filterShowExpense, setFilterShowExpense] = useState(false);
   const [filterShowDiary, setFilterShowDiary] = useState(false);
+  const [showMonthPicker, setShowMonthPicker] = useState(false);
+  const [showYearPicker, setShowYearPicker] = useState(false);
 
   const timelineData = useLiveQuery(async () => {
     let mems = await db.memories.toArray();
@@ -94,17 +109,38 @@ const Memory: React.FC = () => {
           <Filter size={18} /> <span>Lọc dữ liệu</span>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '12px' }}>
-          <select value={filterMonth} onChange={e => setFilterMonth(e.target.value)} style={{ padding: '10px 16px', fontSize: '13px', borderRadius: 'var(--radius-full)' }}>
-            <option value="all">Tất cả các tháng</option>
-            {[...Array(12)].map((_, i) => <option key={i+1} value={String(i+1)}>Tháng {i+1}</option>)}
-          </select>
-          <select value={filterYear} onChange={e => setFilterYear(e.target.value)} style={{ padding: '10px 16px', fontSize: '13px', borderRadius: 'var(--radius-full)' }}>
-            <option value="all">Tất cả các năm</option>
-            <option value="2026">2026</option>
-            <option value="2025">2025</option>
-            <option value="2024">2024</option>
-          </select>
+          <button
+            onClick={() => setShowMonthPicker(true)}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', fontSize: '13px', fontWeight: 700, borderRadius: 'var(--radius-full)', background: 'rgba(255,255,255,0.06)', border: '1px solid var(--border-glass)', color: 'var(--text-main)' }}
+          >
+            {MONTH_OPTIONS.find(o => o.value === filterMonth)?.label} <ChevronDown size={14} />
+          </button>
+          <button
+            onClick={() => setShowYearPicker(true)}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', fontSize: '13px', fontWeight: 700, borderRadius: 'var(--radius-full)', background: 'rgba(255,255,255,0.06)', border: '1px solid var(--border-glass)', color: 'var(--text-main)' }}
+          >
+            {YEAR_OPTIONS.find(o => o.value === filterYear)?.label} <ChevronDown size={14} />
+          </button>
         </div>
+
+        {showMonthPicker && (
+          <RoundedPicker
+            title="Chọn tháng"
+            options={MONTH_OPTIONS}
+            value={filterMonth}
+            onChange={setFilterMonth}
+            onClose={() => setShowMonthPicker(false)}
+          />
+        )}
+        {showYearPicker && (
+          <RoundedPicker
+            title="Chọn năm"
+            options={YEAR_OPTIONS}
+            value={filterYear}
+            onChange={setFilterYear}
+            onClose={() => setShowYearPicker(false)}
+          />
+        )}
         <div style={{ display: 'flex', gap: '10px' }}>
           <button 
             onClick={() => setFilterShowExpense(!filterShowExpense)}
