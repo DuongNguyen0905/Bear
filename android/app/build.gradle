@@ -16,7 +16,22 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        debug {
+            // Keystore cố định, dùng chung cho mọi lần build trên CI — nếu để
+            // Gradle tự tạo debug.keystore ngẫu nhiên, mỗi bản build sẽ ký bằng
+            // key khác nhau, khiến Android bắt buộc gỡ cài đặt (mất dữ liệu)
+            // trước khi cài bản mới thay vì cập nhật tại chỗ.
+            storeFile file('debug.keystore')
+            storePassword 'android'
+            keyAlias 'androiddebugkey'
+            keyPassword 'android'
+        }
+    }
     buildTypes {
+        debug {
+            signingConfig signingConfigs.debug
+        }
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
