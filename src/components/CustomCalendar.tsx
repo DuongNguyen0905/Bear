@@ -11,9 +11,10 @@ interface CustomCalendarProps {
   selectedDate: Date;
   onDateSelect: (date: Date) => void;
   onClose: () => void;
+  allowFuture?: boolean;
 }
 
-const CustomCalendar: React.FC<CustomCalendarProps> = ({ selectedDate, onDateSelect, onClose }) => {
+const CustomCalendar: React.FC<CustomCalendarProps> = ({ selectedDate, onDateSelect, onClose, allowFuture = false }) => {
   const [currentMonth, setCurrentMonth] = useState(selectedDate || new Date());
   const [viewMode, setViewMode] = useState<'calendar' | 'year'>('calendar');
   const today = startOfDay(new Date());
@@ -32,12 +33,12 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({ selectedDate, onDateSel
       >
         {format(currentMonth, 'MMMM yyyy', { locale: vi })} ▾
       </button>
-      <button 
-        onClick={nextMonth} 
-        disabled={isSameMonth(currentMonth, today) || isAfter(currentMonth, today)}
+      <button
+        onClick={nextMonth}
+        disabled={!allowFuture && (isSameMonth(currentMonth, today) || isAfter(currentMonth, today))}
         style={{ background: 'var(--surface)', border: 'none', cursor: 'pointer', padding: '8px', borderRadius: '50%', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', color: 'var(--primary)' }}
       >
-        <ChevronRight size={20} opacity={(isSameMonth(currentMonth, today) || isAfter(currentMonth, today)) ? 0.3 : 1} />
+        <ChevronRight size={20} opacity={!allowFuture && (isSameMonth(currentMonth, today) || isAfter(currentMonth, today)) ? 0.3 : 1} />
       </button>
     </div>
   );
@@ -97,7 +98,7 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({ selectedDate, onDateSel
         const isCurrentMonth = isSameMonth(day, monthStart);
         const isSelected = isSameDay(day, selectedDate);
         const isTodayDate = isSameDay(day, today);
-        const isFuture = isAfter(day, today);
+        const isFuture = !allowFuture && isAfter(day, today);
         const dayKey = format(day, 'yyyy-MM-dd');
 
         days.push(

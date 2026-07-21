@@ -4,6 +4,7 @@ import { memoryService } from '../services/memoryService';
 import { goalService } from '../services/goalService';
 import { financeService } from '../services/financeService';
 import DateNavigator from '../components/DateNavigator';
+import CustomCalendar from '../components/CustomCalendar';
 import { Plus, Trash2, ClipboardList, Target, Award, ChevronLeft, X, TrendingUp, TrendingDown, Image as ImageIcon, BookOpen, Flame, Wallet, Trophy } from 'lucide-react';
 import { db } from '../utils/db';
 import type { Goal, Task } from '../utils/db';
@@ -17,6 +18,7 @@ const Home: React.FC = () => {
   const [tasks, setTasks] = useState<any[]>([]);
   const [newTask, setNewTask] = useState('');
   const [taskDate, setTaskDate] = useState(dateKey);
+  const [showTaskCalendar, setShowTaskCalendar] = useState(false);
 
   const [goals, setGoals] = useState<Goal[]>([]);
   const [showGoalModal, setShowGoalModal] = useState(false);
@@ -24,10 +26,9 @@ const Home: React.FC = () => {
   const [newGoalTarget, setNewGoalTarget] = useState('');
   const [showFundModal, setShowFundModal] = useState<string | null>(null);
   const [fundAmount, setFundAmount] = useState('');
-  const [showAchievements, setShowAchievements] = useState(false);
-  const [showHeaderMenu, setShowHeaderMenu] = useState(false);
+  const [showHallModal, setShowHallModal] = useState(false);
+  const [hallTab, setHallTab] = useState<'goals' | 'review'>('goals');
 
-  const [showReview, setShowReview] = useState(false);
   const [reviewData, setReviewData] = useState<any>(null);
   const [reviewMonth, setReviewMonth] = useState<string>('');
   
@@ -166,7 +167,12 @@ const Home: React.FC = () => {
     const defaultMonth = `${year}-${month}`;
     setReviewMonth(defaultMonth);
     await generateMonthlyReview(defaultMonth);
-    setShowReview(true);
+  };
+
+  const openHallModal = (tab: 'goals' | 'review') => {
+    setHallTab(tab);
+    setShowHallModal(true);
+    if (tab === 'review' && !reviewData) handleOpenReview();
   };
 
   const generateMonthlyReview = async (monthStrInput: string) => {
@@ -206,40 +212,18 @@ const Home: React.FC = () => {
           </h1>
           <p style={{ margin: '4px 0 0 0', color: 'var(--text-muted)', fontSize: '15px' }}>Sẵn sàng cho một ngày mới?</p>
         </div>
-        <div style={{ position: 'relative' }}>
-          <button
-            onClick={() => setShowHeaderMenu(v => !v)}
-            style={{ position: 'relative', background: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(10px)', border: '1px solid var(--border-glass)', borderRadius: '50%', width: '44px', height: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ffd700', cursor: 'pointer', boxShadow: '0 4px 15px rgba(0,0,0,0.2)' }}
-            title="Thành tích & Tổng kết"
-          >
-            <Trophy size={20} />
-            {completedGoals.length > 0 && (
-              <span style={{ position: 'absolute', top: '-4px', right: '-4px', background: 'var(--danger)', color: 'white', fontSize: '10px', fontWeight: 'bold', borderRadius: '10px', minWidth: '18px', height: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px' }}>
-                {completedGoals.length}
-              </span>
-            )}
-          </button>
-
-          {showHeaderMenu && (
-            <>
-              <div onClick={() => setShowHeaderMenu(false)} style={{ position: 'fixed', inset: 0, zIndex: 999 }} />
-              <div className="glass-panel" style={{ position: 'absolute', top: '52px', right: 0, zIndex: 1000, padding: '8px', minWidth: '210px', borderRadius: '20px', animation: 'fadeIn 150ms ease-out' }}>
-                <button
-                  onClick={() => { setShowHeaderMenu(false); setShowAchievements(true); }}
-                  style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 14px', borderRadius: '14px', color: 'var(--text-main)', fontSize: '14px', fontWeight: 600, textAlign: 'left' }}
-                >
-                  <Trophy size={18} color="#ffd700" /> Thành tích mục tiêu
-                </button>
-                <button
-                  onClick={() => { setShowHeaderMenu(false); handleOpenReview(); }}
-                  style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 14px', borderRadius: '14px', color: 'var(--text-main)', fontSize: '14px', fontWeight: 600, textAlign: 'left' }}
-                >
-                  <Award size={18} color="var(--primary)" /> Tổng kết tháng
-                </button>
-              </div>
-            </>
+        <button
+          onClick={() => openHallModal('goals')}
+          style={{ position: 'relative', background: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(10px)', border: '1px solid var(--border-glass)', borderRadius: '50%', width: '44px', height: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ffd700', cursor: 'pointer', boxShadow: '0 4px 15px rgba(0,0,0,0.2)' }}
+          title="Thành tích & Tổng kết"
+        >
+          <Trophy size={20} />
+          {completedGoals.length > 0 && (
+            <span style={{ position: 'absolute', top: '-4px', right: '-4px', background: 'var(--danger)', color: 'white', fontSize: '10px', fontWeight: 'bold', borderRadius: '10px', minWidth: '18px', height: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px' }}>
+              {completedGoals.length}
+            </span>
           )}
-        </div>
+        </button>
       </div>
 
       <DateNavigator />
@@ -323,15 +307,25 @@ const Home: React.FC = () => {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
           <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Ghi việc cho ngày:</span>
-          <input
-            type="date" value={taskDate}
-            onChange={(e) => setTaskDate(e.target.value)}
-            style={{ padding: '8px 14px', fontSize: '13px' }}
-          />
+          <button
+            onClick={() => setShowTaskCalendar(true)}
+            style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: 'var(--radius-full)', background: 'rgba(255,255,255,0.08)', border: '1px solid var(--border-glass)', color: 'var(--text-main)', fontSize: '13px', fontWeight: 700 }}
+          >
+            📅 {format(new Date(taskDate + 'T00:00:00'), 'dd/MM/yyyy')}
+          </button>
           {taskDate !== dateKey && (
             <span style={{ fontSize: '11px', color: 'var(--primary)', fontWeight: 'bold' }}>Khác ngày đang xem</span>
           )}
         </div>
+
+        {showTaskCalendar && (
+          <CustomCalendar
+            selectedDate={new Date(taskDate + 'T00:00:00')}
+            onDateSelect={(d) => { setTaskDate(format(d, 'yyyy-MM-dd')); setShowTaskCalendar(false); }}
+            onClose={() => setShowTaskCalendar(false)}
+            allowFuture
+          />
+        )}
 
         <div>
           {tasks.length === 0 ? (
@@ -381,120 +375,129 @@ const Home: React.FC = () => {
         </div>
       )}
 
-      {showAchievements && (
+      {showHallModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'var(--bg-main)', zIndex: 5000, display: 'flex', flexDirection: 'column', animation: 'slideInRight 0.3s ease-out', overflowY: 'auto' }}>
           <div style={{ padding: '20px', backgroundColor: 'rgba(15, 15, 20, 0.8)', backdropFilter: 'blur(20px)', display: 'flex', alignItems: 'center', position: 'sticky', top: 0, zIndex: 10 }}>
-            <button onClick={() => setShowAchievements(false)} style={{ marginRight: '15px', color: 'white', background: 'none', border: 'none' }}><ChevronLeft size={24} /></button>
-            <h3 style={{ margin: 0, flex: 1, textAlign: 'center', color: 'white' }}>Thành tích mục tiêu</h3>
+            <button onClick={() => setShowHallModal(false)} style={{ marginRight: '15px', color: 'white', background: 'none', border: 'none' }}><ChevronLeft size={24} /></button>
+            <h3 style={{ margin: 0, flex: 1, textAlign: 'center', color: 'white' }}>Thành tích & Tổng kết</h3>
             <div style={{ width: '24px' }}></div>
           </div>
 
-          <div style={{ padding: '20px', paddingBottom: '100px' }}>
-            <div className="card" style={{ background: 'var(--gemini-grad)', backgroundSize: '300% 300%', animation: 'geminiGradient 8s ease infinite', color: 'white', padding: '40px 20px', borderRadius: '30px', textAlign: 'center', marginBottom: '24px', border: 'none' }}>
-              <Trophy size={56} style={{ marginBottom: '16px', filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.3))' }} />
-              <h2 style={{ margin: '0 0 10px 0', fontSize: '28px', textShadow: '0 2px 4px rgba(0,0,0,0.3)' }}>Rất xuất sắc!</h2>
-              <p style={{ margin: 0, opacity: 0.9, fontSize: '16px' }}>
-                Bạn đã hoàn thành <strong>{completedGoals.length}</strong> mục tiêu
-              </p>
-            </div>
-
-            {completedGoals.length === 0 ? (
-              <div className="card glass-panel" style={{ padding: '20px', textAlign: 'center' }}>
-                <p style={{ margin: 0, fontSize: '14px', color: 'var(--text-muted)' }}>Chưa có mục tiêu nào hoàn thành. Cố lên nhé!</p>
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                {completedGoals.map(goal => (
-                  <div key={goal.id} className="card glass-panel" style={{ padding: '18px', borderRadius: '18px', border: '1px solid var(--success)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                      <span style={{ fontWeight: 'bold', fontSize: '16px' }}>{goal.title}</span>
-                      <span style={{ color: 'var(--success)', fontWeight: 'bold' }}>✓ Hoàn thành</span>
-                    </div>
-                    <p style={{ margin: '0 0 4px 0', fontSize: '13px', color: 'var(--text-muted)' }}>
-                      Đạt {(goal.targetAmount / 1000).toFixed(0)}k
-                    </p>
-                    <p style={{ margin: 0, fontSize: '11px', color: 'var(--text-muted)' }}>
-                      Tạo lúc {format(new Date(goal.createdAt), 'HH:mm dd/MM/yyyy')}
-                      {goal.completedAt && ` • Hoàn thành lúc ${format(new Date(goal.completedAt), 'HH:mm dd/MM/yyyy')}`}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            <button onClick={() => setShowAchievements(false)} className="btn-primary" style={{ width: '100%', padding: '18px', marginTop: '24px' }}>Trở về Home</button>
+          {/* Segmented tab switcher — 1 modal duy nhất, không xổ dropdown */}
+          <div style={{ display: 'flex', gap: '8px', padding: '16px 20px 0' }}>
+            <button
+              onClick={() => setHallTab('goals')}
+              style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '12px', borderRadius: '16px', fontWeight: 700, fontSize: '13px', background: hallTab === 'goals' ? 'var(--gemini-grad)' : 'rgba(255,255,255,0.06)', color: hallTab === 'goals' ? 'white' : 'var(--text-muted)' }}
+            >
+              <Trophy size={16} /> Thành tích
+            </button>
+            <button
+              onClick={() => openHallModal('review')}
+              style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '12px', borderRadius: '16px', fontWeight: 700, fontSize: '13px', background: hallTab === 'review' ? 'var(--gemini-grad)' : 'rgba(255,255,255,0.06)', color: hallTab === 'review' ? 'white' : 'var(--text-muted)' }}
+            >
+              <Award size={16} /> Tổng kết tháng
+            </button>
           </div>
-        </div>
-      )}
 
-      {showReview && reviewData && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'var(--bg-main)', zIndex: 5000, display: 'flex', flexDirection: 'column', animation: 'slideInRight 0.3s ease-out', overflowY: 'auto' }}>
-          <div style={{ padding: '20px', backgroundColor: 'rgba(15, 15, 20, 0.8)', backdropFilter: 'blur(20px)', display: 'flex', alignItems: 'center', position: 'sticky', top: 0, zIndex: 10 }}>
-            <button onClick={() => setShowReview(false)} style={{ marginRight: '15px', color: 'white', background: 'none', border: 'none' }}><ChevronLeft size={24} /></button>
-            <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
-              <input 
-                type="month" 
-                value={reviewMonth}
-                onChange={(e) => {
-                   setReviewMonth(e.target.value);
-                   generateMonthlyReview(e.target.value);
-                }}
-                style={{ color: 'white', fontSize: '16px', fontWeight: 'bold', textAlign: 'center' }}
-              />
-            </div>
-            <div style={{ width: '24px' }}></div>
-          </div>
-          
-          <div style={{ padding: '20px', paddingBottom: '100px' }}>
-            <div className="card" style={{ background: 'var(--gemini-grad)', backgroundSize: '300% 300%', animation: 'geminiGradient 8s ease infinite', color: 'white', padding: '40px 20px', borderRadius: '30px', textAlign: 'center', marginBottom: '24px', border: 'none' }}>
-              <Award size={56} style={{ marginBottom: '16px', filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.3))' }} />
-              <h2 style={{ margin: '0 0 10px 0', fontSize: '28px', textShadow: '0 2px 4px rgba(0,0,0,0.3)' }}>Rất xuất sắc!</h2>
-              <p style={{ margin: 0, opacity: 0.9, fontSize: '16px' }}>Tỷ lệ tiết kiệm đạt <strong>{reviewData.stats.savingsRate}%</strong></p>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
-              <div className="card glass-panel" style={{ padding: '20px', textAlign: 'center', margin: 0 }}>
-                <TrendingUp color="var(--success)" size={28} style={{ marginBottom: '12px' }} />
-                <p style={{ margin: '0 0 8px 0', fontSize: '13px', color: 'var(--text-muted)' }}>Tổng Thu Nhập</p>
-                <h4 style={{ margin: 0, fontSize: '18px' }}>{(reviewData.stats.totalIncome/1000).toFixed(0)}k</h4>
+          {hallTab === 'goals' ? (
+            <div style={{ padding: '20px', paddingBottom: '100px' }}>
+              <div className="card" style={{ background: 'var(--gemini-grad)', backgroundSize: '300% 300%', animation: 'geminiGradient 8s ease infinite', color: 'white', padding: '40px 20px', borderRadius: '30px', textAlign: 'center', marginBottom: '24px', border: 'none' }}>
+                <Trophy size={56} style={{ marginBottom: '16px', filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.3))' }} />
+                <h2 style={{ margin: '0 0 10px 0', fontSize: '28px', textShadow: '0 2px 4px rgba(0,0,0,0.3)' }}>Rất xuất sắc!</h2>
+                <p style={{ margin: 0, opacity: 0.9, fontSize: '16px' }}>
+                  Bạn đã hoàn thành <strong>{completedGoals.length}</strong> mục tiêu
+                </p>
               </div>
-              <div className="card glass-panel" style={{ padding: '20px', textAlign: 'center', margin: 0 }}>
-                <TrendingDown color="var(--danger)" size={28} style={{ marginBottom: '12px' }} />
-                <p style={{ margin: '0 0 8px 0', fontSize: '13px', color: 'var(--text-muted)' }}>Tổng Chi Tiêu</p>
-                <h4 style={{ margin: 0, fontSize: '18px' }}>{(reviewData.stats.totalExpense/1000).toFixed(0)}k</h4>
-              </div>
-            </div>
 
-            <div className="card glass-panel" style={{ padding: '24px', borderRadius: '24px', marginBottom: '24px' }}>
-              <h4 style={{ margin: '0 0 16px 0', color: 'var(--text-muted)', fontSize: '14px', textTransform: 'uppercase', letterSpacing: '1px' }}>Hố đen tài chính</h4>
-              {reviewData.topCat ? (
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '18px', fontWeight: 'bold' }}>{reviewData.topCat}</span>
-                  <span style={{ color: 'var(--danger)', fontWeight: 'bold', fontSize: '18px' }}>{(reviewData.topCatAmount/1000).toFixed(0)}k</span>
+              {completedGoals.length === 0 ? (
+                <div className="card glass-panel" style={{ padding: '20px', textAlign: 'center' }}>
+                  <p style={{ margin: 0, fontSize: '14px', color: 'var(--text-muted)' }}>Chưa có mục tiêu nào hoàn thành. Cố lên nhé!</p>
                 </div>
               ) : (
-                <p style={{ margin: 0, fontSize: '14px', color: 'var(--text-muted)' }}>Không có chi tiêu nào.</p>
-              )}
-            </div>
-
-            <div className="card glass-panel" style={{ padding: '24px', borderRadius: '24px', marginBottom: '24px' }}>
-              <h4 style={{ margin: '0 0 20px 0', color: 'var(--text-muted)', fontSize: '14px', textTransform: 'uppercase', letterSpacing: '1px' }}>Kỷ niệm đã lưu</h4>
-              <div style={{ display: 'flex', justifyContent: 'space-around' }}>
-                <div style={{ textAlign: 'center' }}>
-                  <ImageIcon size={32} color="var(--primary)" style={{ marginBottom: '12px' }} />
-                  <h3 style={{ margin: 0, fontSize: '24px' }}>{reviewData.totalPhotos}</h3>
-                  <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: 'var(--text-muted)' }}>Bức ảnh</p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                  {completedGoals.map(goal => (
+                    <div key={goal.id} className="card glass-panel" style={{ padding: '18px', borderRadius: '18px', border: '1px solid var(--success)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                        <span style={{ fontWeight: 'bold', fontSize: '16px' }}>{goal.title}</span>
+                        <span style={{ color: 'var(--success)', fontWeight: 'bold' }}>✓ Hoàn thành</span>
+                      </div>
+                      <p style={{ margin: '0 0 4px 0', fontSize: '13px', color: 'var(--text-muted)' }}>
+                        Đạt {(goal.targetAmount / 1000).toFixed(0)}k
+                      </p>
+                      <p style={{ margin: 0, fontSize: '11px', color: 'var(--text-muted)' }}>
+                        Tạo lúc {format(new Date(goal.createdAt), 'HH:mm dd/MM/yyyy')}
+                        {goal.completedAt && ` • Hoàn thành lúc ${format(new Date(goal.completedAt), 'HH:mm dd/MM/yyyy')}`}
+                      </p>
+                    </div>
+                  ))}
                 </div>
-                <div style={{ textAlign: 'center' }}>
-                  <BookOpen size={32} color="var(--secondary)" style={{ marginBottom: '12px' }} />
-                  <h3 style={{ margin: 0, fontSize: '24px' }}>{reviewData.totalDiaries}</h3>
-                  <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: 'var(--text-muted)' }}>Trang nhật ký</p>
+              )}
+
+              <button onClick={() => setShowHallModal(false)} className="btn-primary" style={{ width: '100%', padding: '18px', marginTop: '24px' }}>Trở về Home</button>
+            </div>
+          ) : reviewData && (
+            <div style={{ padding: '20px', paddingBottom: '100px' }}>
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
+                <input
+                  type="month"
+                  value={reviewMonth}
+                  onChange={(e) => {
+                    setReviewMonth(e.target.value);
+                    generateMonthlyReview(e.target.value);
+                  }}
+                />
+              </div>
+
+              <div className="card" style={{ background: 'var(--gemini-grad)', backgroundSize: '300% 300%', animation: 'geminiGradient 8s ease infinite', color: 'white', padding: '40px 20px', borderRadius: '30px', textAlign: 'center', marginBottom: '24px', border: 'none' }}>
+                <Award size={56} style={{ marginBottom: '16px', filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.3))' }} />
+                <h2 style={{ margin: '0 0 10px 0', fontSize: '28px', textShadow: '0 2px 4px rgba(0,0,0,0.3)' }}>Rất xuất sắc!</h2>
+                <p style={{ margin: 0, opacity: 0.9, fontSize: '16px' }}>Tỷ lệ tiết kiệm đạt <strong>{reviewData.stats.savingsRate}%</strong></p>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
+                <div className="card glass-panel" style={{ padding: '20px', textAlign: 'center', margin: 0 }}>
+                  <TrendingUp color="var(--success)" size={28} style={{ marginBottom: '12px' }} />
+                  <p style={{ margin: '0 0 8px 0', fontSize: '13px', color: 'var(--text-muted)' }}>Tổng Thu Nhập</p>
+                  <h4 style={{ margin: 0, fontSize: '18px' }}>{(reviewData.stats.totalIncome/1000).toFixed(0)}k</h4>
+                </div>
+                <div className="card glass-panel" style={{ padding: '20px', textAlign: 'center', margin: 0 }}>
+                  <TrendingDown color="var(--danger)" size={28} style={{ marginBottom: '12px' }} />
+                  <p style={{ margin: '0 0 8px 0', fontSize: '13px', color: 'var(--text-muted)' }}>Tổng Chi Tiêu</p>
+                  <h4 style={{ margin: 0, fontSize: '18px' }}>{(reviewData.stats.totalExpense/1000).toFixed(0)}k</h4>
                 </div>
               </div>
+
+              <div className="card glass-panel" style={{ padding: '24px', borderRadius: '24px', marginBottom: '24px' }}>
+                <h4 style={{ margin: '0 0 16px 0', color: 'var(--text-muted)', fontSize: '14px', textTransform: 'uppercase', letterSpacing: '1px' }}>Hố đen tài chính</h4>
+                {reviewData.topCat ? (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '18px', fontWeight: 'bold' }}>{reviewData.topCat}</span>
+                    <span style={{ color: 'var(--danger)', fontWeight: 'bold', fontSize: '18px' }}>{(reviewData.topCatAmount/1000).toFixed(0)}k</span>
+                  </div>
+                ) : (
+                  <p style={{ margin: 0, fontSize: '14px', color: 'var(--text-muted)' }}>Không có chi tiêu nào.</p>
+                )}
+              </div>
+
+              <div className="card glass-panel" style={{ padding: '24px', borderRadius: '24px', marginBottom: '24px' }}>
+                <h4 style={{ margin: '0 0 20px 0', color: 'var(--text-muted)', fontSize: '14px', textTransform: 'uppercase', letterSpacing: '1px' }}>Kỷ niệm đã lưu</h4>
+                <div style={{ display: 'flex', justifyContent: 'space-around' }}>
+                  <div style={{ textAlign: 'center' }}>
+                    <ImageIcon size={32} color="var(--primary)" style={{ marginBottom: '12px' }} />
+                    <h3 style={{ margin: 0, fontSize: '24px' }}>{reviewData.totalPhotos}</h3>
+                    <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: 'var(--text-muted)' }}>Bức ảnh</p>
+                  </div>
+                  <div style={{ textAlign: 'center' }}>
+                    <BookOpen size={32} color="var(--secondary)" style={{ marginBottom: '12px' }} />
+                    <h3 style={{ margin: 0, fontSize: '24px' }}>{reviewData.totalDiaries}</h3>
+                    <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: 'var(--text-muted)' }}>Trang nhật ký</p>
+                  </div>
+                </div>
+              </div>
+
+              <button onClick={() => setShowHallModal(false)} className="btn-primary" style={{ padding: '18px' }}>Trở về Home</button>
             </div>
-            
-            <button onClick={() => setShowReview(false)} className="btn-primary" style={{ padding: '18px' }}>Trở về Home</button>
-          </div>
+          )}
         </div>
       )}
     </div>

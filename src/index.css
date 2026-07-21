@@ -337,6 +337,35 @@ input[type="month"]::-webkit-calendar-picker-indicator:hover {
   background: rgba(255, 255, 255, 0.15);
 }
 
+/* Laptop/desktop layout: phone screens (and the installed APK's WebView,
+   which is always narrower than this) never hit this breakpoint, so the
+   phone experience is untouched — only wide browser windows get it. */
+@media (min-width: 768px) {
+  body {
+    overflow: auto;
+    height: auto;
+  }
+
+  .app-container {
+    max-width: 720px;
+    height: 94vh;
+    margin: 3vh auto;
+    border-radius: 36px;
+    border: 1px solid var(--border-glass);
+    box-shadow: 0 30px 90px rgba(0, 0, 0, 0.6), var(--shadow-glow);
+  }
+
+  .content-area {
+    padding: 32px 44px 110px;
+  }
+}
+
+@media (min-width: 1200px) {
+  .app-container {
+    max-width: 860px;
+  }
+}
+
 /* Hide scrollbars */
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }

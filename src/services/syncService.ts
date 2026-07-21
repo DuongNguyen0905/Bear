@@ -33,10 +33,12 @@ export function onSyncStatusChange(listener: (status: SyncStatus) => void): () =
   return () => statusListeners.delete(listener);
 }
 
-export async function signUp(email: string, password: string): Promise<void> {
+export async function signUp(email: string, password: string): Promise<{ hasSession: boolean }> {
   if (!supabase) throw new Error('Chưa cấu hình đám mây (thiếu VITE_SUPABASE_URL/ANON_KEY).');
-  const { error } = await supabase.auth.signUp({ email, password });
+  const { data, error } = await supabase.auth.signUp({ email, password });
   if (error) throw error;
+  // Nếu project tắt "Confirm email", Supabase trả về session ngay, không cần xác nhận gì thêm.
+  return { hasSession: !!data.session };
 }
 
 export async function signIn(email: string, password: string): Promise<void> {

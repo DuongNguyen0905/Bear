@@ -192,8 +192,14 @@ const Expenses: React.FC = () => {
     setCloudLoading(true);
     try {
       if (mode === 'signup') {
-        await signUp(cloudEmail.trim(), cloudPassword);
-        alert('Đã đăng ký! Kiểm tra email để xác nhận (nếu được yêu cầu), sau đó đăng nhập lại.');
+        const { hasSession } = await signUp(cloudEmail.trim(), cloudPassword);
+        if (hasSession) {
+          const user = await getCurrentUser();
+          setCloudUser(user);
+          setCloudPassword('');
+        } else {
+          alert('Đã đăng ký! Kiểm tra email để xác nhận, sau đó đăng nhập lại.');
+        }
       } else {
         await signIn(cloudEmail.trim(), cloudPassword);
         const user = await getCurrentUser();
