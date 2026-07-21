@@ -186,11 +186,12 @@ const Expenses: React.FC = () => {
     if (restoreFileRef.current) restoreFileRef.current.value = '';
   };
 
-  const handleCloudAuth = async () => {
+  const handleCloudAuth = async (mode: 'signin' | 'signup') => {
+    setCloudMode(mode);
     setCloudError('');
     setCloudLoading(true);
     try {
-      if (cloudMode === 'signup') {
+      if (mode === 'signup') {
         await signUp(cloudEmail.trim(), cloudPassword);
         alert('Đã đăng ký! Kiểm tra email để xác nhận (nếu được yêu cầu), sau đó đăng nhập lại.');
       } else {
@@ -560,14 +561,14 @@ const Expenses: React.FC = () => {
                   <div style={{ display: 'flex', gap: '10px' }}>
                     <button
                       disabled={cloudLoading || !cloudEmail || !cloudPassword}
-                      onClick={() => { setCloudMode('signin'); handleCloudAuth(); }}
+                      onClick={() => handleCloudAuth('signin')}
                       className="btn-primary" style={{ flex: 1, padding: '12px', borderRadius: '10px' }}
                     >
                       Đăng Nhập
                     </button>
                     <button
                       disabled={cloudLoading || !cloudEmail || !cloudPassword}
-                      onClick={() => { setCloudMode('signup'); handleCloudAuth(); }}
+                      onClick={() => handleCloudAuth('signup')}
                       className="btn-primary" style={{ flex: 1, padding: '12px', borderRadius: '10px', background: 'rgba(255,255,255,0.1)', color: 'var(--primary)', border: '1px solid var(--border-glass)' }}
                     >
                       Đăng Ký
