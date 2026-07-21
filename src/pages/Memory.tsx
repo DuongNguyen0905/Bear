@@ -94,11 +94,11 @@ const Memory: React.FC = () => {
           <Filter size={18} /> <span>Lọc dữ liệu</span>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '12px' }}>
-          <select value={filterMonth} onChange={e => setFilterMonth(e.target.value)} style={{ padding: '8px', fontSize: '14px' }}>
+          <select value={filterMonth} onChange={e => setFilterMonth(e.target.value)} style={{ padding: '10px 16px', fontSize: '13px', borderRadius: 'var(--radius-full)' }}>
             <option value="all">Tất cả các tháng</option>
             {[...Array(12)].map((_, i) => <option key={i+1} value={String(i+1)}>Tháng {i+1}</option>)}
           </select>
-          <select value={filterYear} onChange={e => setFilterYear(e.target.value)} style={{ padding: '8px', fontSize: '14px' }}>
+          <select value={filterYear} onChange={e => setFilterYear(e.target.value)} style={{ padding: '10px 16px', fontSize: '13px', borderRadius: 'var(--radius-full)' }}>
             <option value="all">Tất cả các năm</option>
             <option value="2026">2026</option>
             <option value="2025">2025</option>

@@ -10,8 +10,10 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@capacitor/app": "^8.1.1",
     "@capacitor/core": "^8.4.0",
     "@capacitor/filesystem": "^8.1.2",
+    "@capacitor/keyboard": "^8.0.5",
     "@capacitor/share": "^8.0.1",
     "@supabase/supabase-js": "^2.110.7",
     "date-fns": "^4.1.0",

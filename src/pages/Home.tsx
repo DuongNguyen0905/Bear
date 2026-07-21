@@ -10,6 +10,7 @@ import { db } from '../utils/db';
 import type { Goal, Task } from '../utils/db';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
+import { useAndroidBack } from '../hooks/useAndroidBack';
 
 const Home: React.FC = () => {
   const { dateKey } = useDate();
@@ -201,6 +202,10 @@ const Home: React.FC = () => {
 
   const activeGoals = goals.filter(g => !g.completed);
   const completedGoals = goals.filter(g => g.completed);
+
+  useAndroidBack(showGoalModal, () => setShowGoalModal(false));
+  useAndroidBack(!!showFundModal, () => setShowFundModal(null));
+  useAndroidBack(showHallModal, () => setShowHallModal(false));
 
   return (
     <div className="page-container" style={{ paddingBottom: '120px' }}>

@@ -7,6 +7,7 @@ import Expenses from './pages/Expenses';
 import Memory from './pages/Memory';
 import { DateProvider } from './contexts/DateContext';
 import { migrateDataToDexie } from './utils/migrate';
+import BackButtonHandler from './components/BackButtonHandler';
 
 const App: React.FC = () => {
   useEffect(() => {
@@ -16,6 +17,7 @@ const App: React.FC = () => {
   return (
     <DateProvider>
       <Router>
+        <BackButtonHandler />
         <div className="app-container">
           <div className="content-area no-scrollbar">
             <Routes>

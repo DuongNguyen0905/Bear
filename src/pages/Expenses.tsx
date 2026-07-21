@@ -19,6 +19,7 @@ import {
   type SyncStatus,
 } from '../services/syncService';
 import type { User } from '@supabase/supabase-js';
+import { useAndroidBack } from '../hooks/useAndroidBack';
 
 const Expenses: React.FC = () => {
   const { dateKey, selectedDate } = useDate();
@@ -48,6 +49,10 @@ const Expenses: React.FC = () => {
   const [isScanning, setIsScanning] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const restoreFileRef = useRef<HTMLInputElement>(null);
+
+  useAndroidBack(showSettings, () => setShowSettings(false));
+  useAndroidBack(showBudgetModal, () => setShowBudgetModal(false));
+  useAndroidBack(showSavingsModal, () => setShowSavingsModal(false));
 
   const [cloudUser, setCloudUser] = useState<User | null>(null);
   const [cloudEmail, setCloudEmail] = useState('');

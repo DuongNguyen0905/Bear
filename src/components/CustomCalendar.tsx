@@ -6,6 +6,7 @@ import {
   isAfter, startOfDay
 } from 'date-fns';
 import { vi } from 'date-fns/locale';
+import { useAndroidBack } from '../hooks/useAndroidBack';
 
 interface CustomCalendarProps {
   selectedDate: Date;
@@ -18,6 +19,8 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({ selectedDate, onDateSel
   const [currentMonth, setCurrentMonth] = useState(selectedDate || new Date());
   const [viewMode, setViewMode] = useState<'calendar' | 'year'>('calendar');
   const today = startOfDay(new Date());
+
+  useAndroidBack(true, onClose);
 
   const nextMonth = () => setCurrentMonth(addMonths(currentMonth, 1));
   const prevMonth = () => setCurrentMonth(subMonths(currentMonth, 1));

@@ -4,6 +4,7 @@ import { Home, Camera, BookHeart, PenLine, Receipt, X } from 'lucide-react';
 import './BottomNav.css';
 import { useDate } from '../contexts/DateContext';
 import { memoryService } from '../services/memoryService';
+import { useAndroidBack } from '../hooks/useAndroidBack';
 
 // Mặc định luôn dùng bộ lọc "Đậm đà" cho ảnh chụp, không cần người dùng chọn lại.
 const VIVID_FILTER = 'saturate(2) contrast(1.2)';
@@ -16,6 +17,8 @@ const BottomNav: React.FC = () => {
   const [editingPhoto, setEditingPhoto] = useState<string | null>(null);
   const [caption, setCaption] = useState('');
   const [isSavingPhoto, setIsSavingPhoto] = useState(false);
+
+  useAndroidBack(!!editingPhoto, () => closeEditor());
 
   const handleCameraClick = (e: React.MouseEvent) => {
     e.preventDefault();
