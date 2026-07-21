@@ -1,25 +1,19 @@
 import React, { useRef, useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Home, Camera, BookHeart, PenLine, Receipt, X, Check } from 'lucide-react';
+import { Home, Camera, BookHeart, PenLine, Receipt, X } from 'lucide-react';
 import './BottomNav.css';
 import { useDate } from '../contexts/DateContext';
 import { memoryService } from '../services/memoryService';
 
-const FILTERS = [
-  { id: 'none', name: 'Gốc', style: 'none' },
-  { id: 'dreamy', name: 'Thơ mộng', style: 'sepia(0.3) saturate(1.4) contrast(1.1)' },
-  { id: 'vivid', name: 'Đậm đà', style: 'saturate(2) contrast(1.2)' },
-  { id: 'cool', name: 'Sương sớm', style: 'hue-rotate(-15deg) saturate(1.1) brightness(1.05)' },
-  { id: 'cinematic', name: 'Điện ảnh', style: 'contrast(1.25) saturate(0.85) sepia(0.15) brightness(0.95)' },
-  { id: 'bright', name: 'Tươi sáng', style: 'brightness(1.15) saturate(1.2)' }
-];
+// Mặc định luôn dùng bộ lọc "Đậm đà" cho ảnh chụp, không cần người dùng chọn lại.
+const VIVID_FILTER = 'saturate(2) contrast(1.2)';
 
 const BottomNav: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const captionInputRef = useRef<HTMLInputElement>(null);
   const { dateKey } = useDate();
-  
+
   const [editingPhoto, setEditingPhoto] = useState<string | null>(null);
-  const [selectedFilter, setSelectedFilter] = useState(FILTERS[0]);
   const [caption, setCaption] = useState('');
   const [isSavingPhoto, setIsSavingPhoto] = useState(false);
 
@@ -37,8 +31,9 @@ const BottomNav: React.FC = () => {
     const reader = new FileReader();
     reader.onload = (event) => {
       setEditingPhoto(event.target?.result as string);
-      setSelectedFilter(FILTERS[2]); // Default to 'vivid' (Đậm đà)
       setCaption('');
+      // Đưa con trỏ vào ô chú thích luôn để chỉ cần gõ chữ rồi Enter là lưu.
+      setTimeout(() => captionInputRef.current?.focus(), 350);
     };
     reader.readAsDataURL(file);
     e.target.value = '';
@@ -63,9 +58,7 @@ const BottomNav: React.FC = () => {
       if (ctx) {
         // Chỉ áp dụng bộ lọc màu lên ảnh, KHÔNG vẽ chữ chú thích lên canvas
         // để caption luôn là dữ liệu văn bản riêng, hiển thị bên dưới ảnh.
-        if (selectedFilter.style !== 'none') {
-          ctx.filter = selectedFilter.style;
-        }
+        ctx.filter = VIVID_FILTER;
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
         const finalImageUrl = canvas.toDataURL('image/jpeg', 0.9);
 
@@ -97,46 +90,31 @@ const BottomNav: React.FC = () => {
   return (
     <>
       {editingPhoto && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#000', zIndex: 9999, display: 'flex', flexDirection: 'column' }}>
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#000', zIndex: 9999, display: 'flex', flexDirection: 'column', animation: 'fadeIn 200ms ease-out' }}>
           <div style={{ padding: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(0,0,0,0.5)', zIndex: 10, flexShrink: 0 }}>
-            <button onClick={closeEditor} style={{ color: 'white', background: 'none', border: 'none' }}><X size={28} /></button>
+            <button onClick={closeEditor} style={{ color: 'white', background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '50%', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={20} /></button>
             <h3 style={{ margin: 0, color: 'white' }}>Khoảnh khắc này</h3>
-            <button onClick={saveFilteredPhoto} disabled={isSavingPhoto} style={{ color: '#58a6ff', background: 'none', border: 'none', opacity: isSavingPhoto ? 0.5 : 1 }}><Check size={28} /></button>
+            <div style={{ width: '36px' }} />
           </div>
 
           <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', padding: '20px 20px 0' }}>
-            <img src={editingPhoto} alt="Preview" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', filter: selectedFilter.style, transition: 'filter 0.3s ease', borderRadius: '16px', boxShadow: '0 10px 40px rgba(0,0,0,0.5)' }} />
+            <img src={editingPhoto} alt="Preview" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', filter: VIVID_FILTER, borderRadius: '24px', boxShadow: '0 10px 40px rgba(0,0,0,0.5)' }} />
           </div>
 
           <div style={{ flexShrink: 0, padding: '16px 20px', background: 'rgba(0,0,0,0.5)' }}>
-            <div className="no-scrollbar" style={{ display: 'flex', gap: '10px', overflowX: 'auto', marginBottom: '14px' }}>
-              {FILTERS.map(f => (
-                <button
-                  key={f.id}
-                  onClick={() => setSelectedFilter(f)}
-                  style={{
-                    flexShrink: 0, padding: '8px 14px', borderRadius: '20px', fontSize: '13px', fontWeight: 'bold',
-                    border: f.id === selectedFilter.id ? '1px solid #58a6ff' : '1px solid rgba(255,255,255,0.2)',
-                    background: f.id === selectedFilter.id ? 'rgba(88,166,255,0.2)' : 'rgba(255,255,255,0.05)',
-                    color: f.id === selectedFilter.id ? '#58a6ff' : 'white'
-                  }}
-                >
-                  {f.name}
-                </button>
-              ))}
-            </div>
-
             <div className="gemini-input-wrapper" style={{ marginBottom: '14px' }}>
               <input
+                ref={captionInputRef}
                 type="text"
-                placeholder="Viết vài dòng cho khoảnh khắc này..."
+                placeholder="Viết vài dòng rồi Enter để lưu..."
                 value={caption}
                 onChange={(e) => setCaption(e.target.value)}
-                style={{ width: '100%', padding: '12px 16px', borderRadius: '10px', border: 'none', backgroundColor: 'transparent', color: 'white' }}
+                onKeyDown={(e) => { if (e.key === 'Enter' && !isSavingPhoto) saveFilteredPhoto(); }}
+                style={{ width: '100%', padding: '14px 18px', borderRadius: '18px', border: 'none', backgroundColor: 'rgba(255,255,255,0.08)', color: 'white' }}
               />
             </div>
 
-            <button onClick={saveFilteredPhoto} disabled={isSavingPhoto} className="btn-primary" style={{ width: '100%', padding: '14px', borderRadius: '14px' }}>
+            <button onClick={saveFilteredPhoto} disabled={isSavingPhoto} className="btn-primary" style={{ width: '100%', padding: '14px', borderRadius: '18px' }}>
               {isSavingPhoto ? '⏳ Đang lưu...' : 'Lưu vào Kỷ niệm'}
             </button>
           </div>

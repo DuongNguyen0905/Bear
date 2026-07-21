@@ -25,6 +25,7 @@ const Home: React.FC = () => {
   const [showFundModal, setShowFundModal] = useState<string | null>(null);
   const [fundAmount, setFundAmount] = useState('');
   const [showAchievements, setShowAchievements] = useState(false);
+  const [showHeaderMenu, setShowHeaderMenu] = useState(false);
 
   const [showReview, setShowReview] = useState(false);
   const [reviewData, setReviewData] = useState<any>(null);
@@ -205,8 +206,12 @@ const Home: React.FC = () => {
           </h1>
           <p style={{ margin: '4px 0 0 0', color: 'var(--text-muted)', fontSize: '15px' }}>Sẵn sàng cho một ngày mới?</p>
         </div>
-        <div style={{ display: 'flex', gap: '10px' }}>
-          <button onClick={() => setShowAchievements(true)} style={{ position: 'relative', background: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(10px)', border: '1px solid var(--border-glass)', borderRadius: '50%', width: '44px', height: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ffd700', cursor: 'pointer', boxShadow: '0 4px 15px rgba(0,0,0,0.2)', transition: 'all 0.2s' }} title="Mục tiêu đã hoàn thành">
+        <div style={{ position: 'relative' }}>
+          <button
+            onClick={() => setShowHeaderMenu(v => !v)}
+            style={{ position: 'relative', background: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(10px)', border: '1px solid var(--border-glass)', borderRadius: '50%', width: '44px', height: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ffd700', cursor: 'pointer', boxShadow: '0 4px 15px rgba(0,0,0,0.2)' }}
+            title="Thành tích & Tổng kết"
+          >
             <Trophy size={20} />
             {completedGoals.length > 0 && (
               <span style={{ position: 'absolute', top: '-4px', right: '-4px', background: 'var(--danger)', color: 'white', fontSize: '10px', fontWeight: 'bold', borderRadius: '10px', minWidth: '18px', height: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px' }}>
@@ -214,12 +219,29 @@ const Home: React.FC = () => {
               </span>
             )}
           </button>
-          <button onClick={handleOpenReview} style={{ background: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(10px)', border: '1px solid var(--border-glass)', borderRadius: '50%', width: '44px', height: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)', cursor: 'pointer', boxShadow: '0 4px 15px rgba(0,0,0,0.2)', transition: 'all 0.2s' }} title="Tổng kết tháng">
-            <Award size={20} />
-          </button>
+
+          {showHeaderMenu && (
+            <>
+              <div onClick={() => setShowHeaderMenu(false)} style={{ position: 'fixed', inset: 0, zIndex: 999 }} />
+              <div className="glass-panel" style={{ position: 'absolute', top: '52px', right: 0, zIndex: 1000, padding: '8px', minWidth: '210px', borderRadius: '20px', animation: 'fadeIn 150ms ease-out' }}>
+                <button
+                  onClick={() => { setShowHeaderMenu(false); setShowAchievements(true); }}
+                  style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 14px', borderRadius: '14px', color: 'var(--text-main)', fontSize: '14px', fontWeight: 600, textAlign: 'left' }}
+                >
+                  <Trophy size={18} color="#ffd700" /> Thành tích mục tiêu
+                </button>
+                <button
+                  onClick={() => { setShowHeaderMenu(false); handleOpenReview(); }}
+                  style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 14px', borderRadius: '14px', color: 'var(--text-main)', fontSize: '14px', fontWeight: 600, textAlign: 'left' }}
+                >
+                  <Award size={18} color="var(--primary)" /> Tổng kết tháng
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </div>
-      
+
       <DateNavigator />
 
       {/* Grid Dashboard */}
@@ -304,7 +326,7 @@ const Home: React.FC = () => {
           <input
             type="date" value={taskDate}
             onChange={(e) => setTaskDate(e.target.value)}
-            style={{ padding: '6px 10px', fontSize: '13px', borderRadius: '8px', border: '1px solid var(--border-glass)', background: 'rgba(255,255,255,0.05)', color: 'var(--text-main)' }}
+            style={{ padding: '8px 14px', fontSize: '13px' }}
           />
           {taskDate !== dateKey && (
             <span style={{ fontSize: '11px', color: 'var(--primary)', fontWeight: 'bold' }}>Khác ngày đang xem</span>
@@ -417,7 +439,7 @@ const Home: React.FC = () => {
                    setReviewMonth(e.target.value);
                    generateMonthlyReview(e.target.value);
                 }}
-                style={{ background: 'transparent', border: 'none', color: 'white', fontSize: '18px', fontWeight: 'bold', outline: 'none', textAlign: 'center' }}
+                style={{ color: 'white', fontSize: '16px', fontWeight: 'bold', textAlign: 'center' }}
               />
             </div>
             <div style={{ width: '24px' }}></div>

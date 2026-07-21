@@ -198,6 +198,20 @@ button {
   transform: translateY(1px) scale(0.98);
 }
 
+/* Liquid Glass tactile feedback: every tappable surface eases in and
+   softly compresses on press, like an iOS glass bubble. */
+button, .card, .glass-panel, a.nav-item, .nav-item-center {
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast), border-color var(--transition-fast);
+}
+
+button:active:not(:disabled), .nav-item-center:active {
+  transform: scale(0.94);
+}
+
+.card:active, .glass-panel:active {
+  transform: scale(0.985);
+}
+
 .btn-primary:disabled {
   opacity: 0.5;
   cursor: not-allowed;
@@ -290,6 +304,37 @@ select {
 select option {
   background-color: var(--bg-main);
   color: var(--text-main);
+}
+
+/* Liquid Glass date/month pickers: bubbly pill shape matching the app's
+   glass cards, since the native OS picker popup itself can't be restyled. */
+input[type="date"], input[type="month"] {
+  width: auto;
+  padding: 10px 16px;
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-glass);
+  color: var(--text-main);
+  font-weight: 600;
+  box-shadow: var(--shadow-sm);
+}
+
+input[type="date"]:focus, input[type="month"]:focus {
+  box-shadow: 0 0 0 2px var(--bg-main), 0 0 0 4px #9b72cb;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="month"]::-webkit-calendar-picker-indicator {
+  filter: invert(1) brightness(1.5);
+  cursor: pointer;
+  border-radius: var(--radius-full);
+  padding: 4px;
+  transition: background var(--transition-fast);
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator:hover,
+input[type="month"]::-webkit-calendar-picker-indicator:hover {
+  background: rgba(255, 255, 255, 0.15);
 }
 
 /* Hide scrollbars */
