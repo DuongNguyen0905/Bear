@@ -113,7 +113,9 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({ selectedDate, onDateSel
             <div style={{
               width: '38px', height: '38px', display: 'flex', justifyContent: 'center', alignItems: 'center', borderRadius: '50%',
               backgroundColor: isSelected ? 'var(--primary)' : (isTodayDate ? '#eaf4f4' : 'transparent'),
-              color: isSelected ? 'white' : (isFuture ? 'var(--text-muted)' : (isTodayDate ? 'var(--primary-dark)' : 'var(--text-main)')),
+              // Thẻ lịch này luôn nền trắng, nên chữ phải dùng màu tối cố định
+              // thay vì var(--text-main) (màu sáng dành cho nền tối) kẻo mất chữ.
+              color: isSelected ? 'white' : (isFuture ? '#b4b4c2' : (isTodayDate ? 'var(--primary-dark)' : '#33334d')),
               fontWeight: (isSelected || isTodayDate) ? 'bold' : 'normal',
               boxShadow: isSelected ? '0 4px 12px rgba(142, 202, 230, 0.4)' : 'none',
               transition: 'all 0.2s', border: isTodayDate && !isSelected ? '2px solid #eaf4f4' : 'none'
