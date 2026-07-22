@@ -134,8 +134,11 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({ selectedDate, onDateSel
   };
 
   return (
-    <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 3000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', backdropFilter: 'blur(5px)' }}>
-      <div style={{ backgroundColor: '#ffffff', borderRadius: '30px', width: '100%', maxWidth: '360px', overflow: 'hidden', boxShadow: '0 20px 50px rgba(0,0,0,0.2)', animation: 'slideUp 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)' }}>
+    <div
+      onClick={onClose}
+      style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 3000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', backdropFilter: 'blur(5px)' }}
+    >
+      <div onClick={(e) => e.stopPropagation()} style={{ backgroundColor: '#ffffff', borderRadius: '30px', width: '100%', maxWidth: '360px', overflow: 'hidden', boxShadow: '0 20px 50px rgba(0,0,0,0.2)', animation: 'slideUp 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)' }}>
         <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '16px 20px 0', backgroundColor: '#f4f9f9' }}>
            <button onClick={onClose} style={{ background: '#eaf4f4', border: 'none', padding: '8px', borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
              <X color="var(--primary-dark)" size={20} />

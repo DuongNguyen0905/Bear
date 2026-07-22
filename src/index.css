@@ -347,7 +347,11 @@ input[type="month"]::-webkit-calendar-picker-indicator:hover {
   }
 
   .app-container {
-    max-width: 720px;
+    /* Fluid width: scales continuously with the browser window instead of
+       jumping between fixed sizes, so resizing the window visibly reflows
+       the layout rather than just re-centering a fixed card. */
+    width: clamp(720px, 70vw, 1100px);
+    max-width: 96vw;
     height: 94vh;
     margin: 3vh auto;
     border-radius: 36px;
@@ -356,13 +360,7 @@ input[type="month"]::-webkit-calendar-picker-indicator:hover {
   }
 
   .content-area {
-    padding: 32px 44px 110px;
-  }
-}
-
-@media (min-width: 1200px) {
-  .app-container {
-    max-width: 860px;
+    padding: clamp(24px, 3vw, 44px) clamp(28px, 4vw, 56px) 110px;
   }
 }
 

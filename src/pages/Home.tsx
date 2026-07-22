@@ -4,7 +4,6 @@ import { memoryService } from '../services/memoryService';
 import { goalService } from '../services/goalService';
 import { financeService } from '../services/financeService';
 import DateNavigator from '../components/DateNavigator';
-import CustomCalendar from '../components/CustomCalendar';
 import RoundedPicker from '../components/RoundedPicker';
 
 const REVIEW_MONTH_OPTIONS = Array.from({ length: 12 }, (_, i) => ({ value: String(i + 1).padStart(2, '0'), label: `Tháng ${i + 1}` }));
@@ -25,8 +24,6 @@ const Home: React.FC = () => {
   
   const [tasks, setTasks] = useState<any[]>([]);
   const [newTask, setNewTask] = useState('');
-  const [taskDate, setTaskDate] = useState(dateKey);
-  const [showTaskCalendar, setShowTaskCalendar] = useState(false);
   const [showReviewMonthPicker, setShowReviewMonthPicker] = useState(false);
   const [showReviewYearPicker, setShowReviewYearPicker] = useState(false);
 
@@ -48,7 +45,6 @@ const Home: React.FC = () => {
 
   useEffect(() => {
     loadData();
-    setTaskDate(dateKey);
     const hour = new Date().getHours();
     if (hour < 12) setGreeting('Chào buổi sáng ☀️');
     else if (hour < 18) setGreeting('Chào buổi chiều 🌤️');
@@ -111,17 +107,12 @@ const Home: React.FC = () => {
     await memoryService.updatePartial(dateKey, { tasks: updatedTasks });
   };
 
-  const handleAddTask = async () => {
+  const handleAddTask = () => {
     if (!newTask.trim()) return;
+    // Việc luôn được ghi cho đúng ngày đang xem trên thanh điều hướng ngày ở đầu trang —
+    // muốn ghi việc cho ngày khác thì chuyển ngày ở đó trước.
     const newTaskObj: Task = { id: Date.now().toString(), text: newTask.trim(), status: 'empty' };
-
-    if (taskDate === dateKey) {
-      handleSaveTasks([...tasks, newTaskObj]);
-    } else {
-      // Thêm việc cho một ngày khác ngày đang xem: lưu thẳng vào ngày đó, không đổi danh sách đang hiển thị.
-      const targetEntry = await memoryService.getByDate(taskDate);
-      await memoryService.updatePartial(taskDate, { tasks: [...(targetEntry.tasks || []), newTaskObj] });
-    }
+    handleSaveTasks([...tasks, newTaskObj]);
     setNewTask('');
   };
 
@@ -319,28 +310,6 @@ const Home: React.FC = () => {
             <Plus size={22} />
           </button>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-          <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Ghi việc cho ngày:</span>
-          <button
-            onClick={() => setShowTaskCalendar(true)}
-            style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: 'var(--radius-full)', background: 'rgba(255,255,255,0.08)', border: '1px solid var(--border-glass)', color: 'var(--text-main)', fontSize: '13px', fontWeight: 700 }}
-          >
-            📅 {format(new Date(taskDate + 'T00:00:00'), 'dd/MM/yyyy')}
-          </button>
-          {taskDate !== dateKey && (
-            <span style={{ fontSize: '11px', color: 'var(--primary)', fontWeight: 'bold' }}>Khác ngày đang xem</span>
-          )}
-        </div>
-
-        {showTaskCalendar && (
-          <CustomCalendar
-            selectedDate={new Date(taskDate + 'T00:00:00')}
-            onDateSelect={(d) => { setTaskDate(format(d, 'yyyy-MM-dd')); setShowTaskCalendar(false); }}
-            onClose={() => setShowTaskCalendar(false)}
-            allowFuture
-          />
-        )}
-
         <div>
           {tasks.length === 0 ? (
             <p style={{ margin: 0, fontSize: '14px', color: 'var(--text-muted)', textAlign: 'center' }}>Quảnh gánh lo đi và vui sống 🍃</p>
