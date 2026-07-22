@@ -133,12 +133,13 @@ const Expenses: React.FC = () => {
   };
 
   const handleSave = async () => {
-    if (!amount || !desc) return;
+    const parsedAmount = parseInt(amount);
+    if (!parsedAmount || parsedAmount <= 0 || !desc.trim()) return;
     await financeService.addTransaction({
       type: activeTab,
-      amount: parseInt(amount),
+      amount: parsedAmount,
       category,
-      note: desc,
+      note: desc.trim(),
       dateKey
     });
     setAmount('');
@@ -350,7 +351,7 @@ const Expenses: React.FC = () => {
 
       {/* Input Form */}
       <div className="card glass-panel" style={{ marginBottom: '24px', borderRadius: '20px', padding: '20px' }}>
-        <div style={{ display: 'flex', marginBottom: '20px', borderRadius: '12px', overflow: 'hidden', backgroundColor: '#f5f5f5' }}>
+        <div style={{ display: 'flex', marginBottom: '20px', borderRadius: '12px', overflow: 'hidden', backgroundColor: 'rgba(255,255,255,0.05)' }}>
           <button 
             style={{ flex: 1, padding: '12px', backgroundColor: activeTab === 'expense' ? 'white' : 'transparent', color: activeTab === 'expense' ? 'var(--danger)' : 'var(--text-muted)', fontWeight: 'bold', border: 'none', borderRadius: '10px', margin: '4px', boxShadow: activeTab === 'expense' ? '0 2px 8px rgba(0,0,0,0.05)' : 'none', transition: 'all 0.2s' }}
             onClick={() => setActiveTab('expense')}
@@ -367,9 +368,10 @@ const Expenses: React.FC = () => {
 
         <div style={{ display: 'flex', gap: '10px', marginBottom: '16px' }}>
           <div className="gemini-input-wrapper" style={{ flex: 2, display: 'flex', alignItems: 'center' }}>
-            <input 
-              type="number" 
-              placeholder="Số tiền" 
+            <input
+              type="number"
+              min="1"
+              placeholder="Số tiền"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               style={{ flex: 1, padding: '16px', borderRadius: '14px', border: 'none', fontSize: '16px', fontWeight: 'bold' }} 
@@ -433,13 +435,13 @@ const Expenses: React.FC = () => {
           />
         </div>
         
-        <button 
+        <button
           onClick={handleSave}
-          disabled={!amount || !desc}
-          style={{ 
+          disabled={!(parseInt(amount) > 0) || !desc.trim()}
+          style={{
             width: '100%', padding: '16px', borderRadius: '14px', border: 'none', fontWeight: 'bold', fontSize: '16px', color: 'white',
             backgroundColor: activeTab === 'expense' ? 'var(--danger)' : 'var(--success)',
-            opacity: (!amount || !desc) ? 0.5 : 1,
+            opacity: (!(parseInt(amount) > 0) || !desc.trim()) ? 0.5 : 1,
             boxShadow: activeTab === 'expense' ? '0 4px 15px rgba(255, 71, 87, 0.3)' : '0 4px 15px rgba(46, 213, 115, 0.3)'
           }}
         >

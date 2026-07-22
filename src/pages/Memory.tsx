@@ -11,9 +11,10 @@ const MONTH_OPTIONS = [
 
 const YEAR_OPTIONS = [
   { value: 'all', label: 'Tất cả các năm' },
-  { value: '2026', label: '2026' },
-  { value: '2025', label: '2025' },
-  { value: '2024', label: '2024' }
+  ...Array.from({ length: 5 }, (_, i) => {
+    const y = String(new Date().getFullYear() - i);
+    return { value: y, label: y };
+  })
 ];
 
 const Memory: React.FC = () => {

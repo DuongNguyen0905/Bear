@@ -63,43 +63,36 @@ const Home: React.FC = () => {
     const bStatus = await financeService.getBudgetStatus(year, month);
     setSafeDailyLimit(bStatus.safeDailyLimit);
     
-    // Streak logic
+    // Streak logic: đếm số ngày liên tiếp có hoạt động (nhật ký hoặc ảnh),
+    // tính từ hôm nay lùi về trước — nếu hôm nay chưa ghi gì thì tính từ hôm qua
+    // (để không mất streak chỉ vì chưa kịp ghi trong ngày).
     const mems = await db.memories.toArray();
-    mems.sort((a, b) => b.dateKey.localeCompare(a.dateKey));
-    let currentStreak = 0;
     const today = new Date();
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
     const todayStr = today.toISOString().split('T')[0];
     const yesterdayStr = yesterday.toISOString().split('T')[0];
-    
+
     const hasActivity = (e: any) => e && ((e.diary && e.diary.trim() !== '') || (e.photos && e.photos.length > 0));
-    let checkDate = new Date();
     const todayEntry = mems.find(m => m.dateKey === todayStr);
-    
-    if (!hasActivity(todayEntry)) {
-      const yesterdayEntry = mems.find(m => m.dateKey === yesterdayStr);
-      if (!hasActivity(yesterdayEntry)) setStreak(0);
-      else checkDate = yesterday;
+    const yesterdayEntry = mems.find(m => m.dateKey === yesterdayStr);
+
+    let startDate: Date | null = null;
+    if (hasActivity(todayEntry)) startDate = today;
+    else if (hasActivity(yesterdayEntry)) startDate = yesterday;
+
+    let currentStreak = 0;
+    if (startDate) {
+      const d = new Date(startDate);
+      while (true) {
+        const dStr = d.toISOString().split('T')[0];
+        const e = mems.find(m => m.dateKey === dStr);
+        if (!hasActivity(e)) break;
+        currentStreak++;
+        d.setDate(d.getDate() - 1);
+      }
     }
-    
-    if (streak === 0 && checkDate === today && !hasActivity(todayEntry)) {
-      // no activity
-    } else {
-        let counting = true;
-        let d = new Date(checkDate);
-        while (counting) {
-          const dStr = d.toISOString().split('T')[0];
-          const e = mems.find(m => m.dateKey === dStr);
-          if (hasActivity(e)) {
-            currentStreak++;
-            d.setDate(d.getDate() - 1);
-          } else {
-            counting = false;
-          }
-        }
-        setStreak(currentStreak);
-    }
+    setStreak(currentStreak);
   };
 
   const handleSaveTasks = async (updatedTasks: any[]) => {
@@ -144,8 +137,9 @@ const Home: React.FC = () => {
   };
 
   const handleCreateGoal = async () => {
-    if (!newGoalTitle || !newGoalTarget) return;
-    await goalService.addGoal(newGoalTitle, parseInt(newGoalTarget));
+    const target = parseInt(newGoalTarget);
+    if (!newGoalTitle.trim() || !target || target <= 0) return;
+    await goalService.addGoal(newGoalTitle.trim(), target);
     setNewGoalTitle('');
     setNewGoalTarget('');
     setShowGoalModal(false);
@@ -153,8 +147,9 @@ const Home: React.FC = () => {
   };
 
   const handleFundGoal = async () => {
-    if (!showFundModal || !fundAmount) return;
-    await goalService.updateGoalProgress(showFundModal, parseInt(fundAmount));
+    const amount = parseInt(fundAmount);
+    if (!showFundModal || !amount || amount <= 0) return;
+    await goalService.updateGoalProgress(showFundModal, amount);
     setFundAmount('');
     setShowFundModal(null);
     loadData();
@@ -339,7 +334,7 @@ const Home: React.FC = () => {
               <button onClick={() => setShowGoalModal(false)}><X size={20} color="white" /></button>
             </div>
             <input type="text" placeholder="Ví dụ: Mua iPhone 16" value={newGoalTitle} onChange={e => setNewGoalTitle(e.target.value)} style={{ marginBottom: '15px' }} />
-            <input type="number" placeholder="Số tiền (VNĐ)" value={newGoalTarget} onChange={e => setNewGoalTarget(e.target.value)} style={{ marginBottom: '24px' }} />
+            <input type="number" min="1" placeholder="Số tiền (VNĐ)" value={newGoalTarget} onChange={e => setNewGoalTarget(e.target.value)} style={{ marginBottom: '24px' }} />
             <button onClick={handleCreateGoal} className="btn-primary">Bắt đầu tích lũy</button>
           </div>
         </div>
@@ -352,7 +347,7 @@ const Home: React.FC = () => {
               <h3 style={{ margin: 0 }}>Bỏ ống heo</h3>
               <button onClick={() => setShowFundModal(null)}><X size={20} color="white" /></button>
             </div>
-            <input type="number" placeholder="Số tiền nạp (VNĐ)" value={fundAmount} onChange={e => setFundAmount(e.target.value)} style={{ marginBottom: '24px' }} />
+            <input type="number" min="1" placeholder="Số tiền nạp (VNĐ)" value={fundAmount} onChange={e => setFundAmount(e.target.value)} style={{ marginBottom: '24px' }} />
             <button onClick={handleFundGoal} className="btn-primary">Nạp tiền</button>
           </div>
         </div>
