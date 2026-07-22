@@ -57,8 +57,9 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow: hidden;
+  /* Cố ý CHỈ dùng 100vh, không dùng 100dvh: dvh tự co theo bàn phím ảo,
+     đúng nguyên nhân khiến thanh menu dưới bị đẩy nhảy lên khi gõ chữ. */
   height: 100vh;
-  height: 100dvh;
 }
 
 #root {
