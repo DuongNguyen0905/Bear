@@ -5,11 +5,12 @@ const config: CapacitorConfig = {
   appName: ' SoTay',
   webDir: 'dist',
   plugins: {
-    // Lưu ý: "resize" ở đây chỉ có tác dụng trên iOS. Trên Android, việc
-    // khoá layout không bị bàn phím đẩy lên nằm ở
-    // android:windowSoftInputMode="adjustNothing" trong AndroidManifest.xml.
+    // resizeOnFullScreen=true khiến plugin TỰ TAY co chiều cao WebView mỗi khi
+    // bàn phím hiện lên (đọc thấy trong Keyboard.java), đè lên mọi thứ đã khoá
+    // ở AndroidManifest (adjustNothing) lẫn CSS/viewport — đây mới là nguyên
+    // nhân thật khiến thanh menu vẫn nhảy theo bàn phím. Phải để false.
     Keyboard: {
-      resizeOnFullScreen: true
+      resizeOnFullScreen: false
     }
   }
 };
