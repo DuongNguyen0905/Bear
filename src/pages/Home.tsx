@@ -5,6 +5,7 @@ import { goalService } from '../services/goalService';
 import { financeService } from '../services/financeService';
 import DateNavigator from '../components/DateNavigator';
 import RoundedPicker from '../components/RoundedPicker';
+import ConfirmDialog from '../components/ConfirmDialog';
 
 const REVIEW_MONTH_OPTIONS = Array.from({ length: 12 }, (_, i) => ({ value: String(i + 1).padStart(2, '0'), label: `Tháng ${i + 1}` }));
 const REVIEW_YEAR_OPTIONS = Array.from({ length: 5 }, (_, i) => {
@@ -33,6 +34,8 @@ const Home: React.FC = () => {
   const [newGoalTarget, setNewGoalTarget] = useState('');
   const [showFundModal, setShowFundModal] = useState<string | null>(null);
   const [fundAmount, setFundAmount] = useState('');
+  const [confirmDeleteGoal, setConfirmDeleteGoal] = useState<string | null>(null);
+  const [confirmDeleteTask, setConfirmDeleteTask] = useState<string | null>(null);
   const [showHallModal, setShowHallModal] = useState(false);
   const [hallTab, setHallTab] = useState<'goals' | 'review'>('goals');
 
@@ -111,6 +114,13 @@ const Home: React.FC = () => {
 
   const handleDeleteTask = (id: string) => {
     handleSaveTasks(tasks.filter(t => t.id !== id));
+    setConfirmDeleteTask(null);
+  };
+
+  const handleDeleteGoal = async (id: string) => {
+    await goalService.deleteGoal(id);
+    setConfirmDeleteGoal(null);
+    loadData();
   };
 
   const cycleStatus = (id: string) => {
@@ -269,9 +279,10 @@ const Home: React.FC = () => {
               const isCompleted = percent >= 100;
               return (
                 <div key={goal.id} className="card glass-panel" style={{ minWidth: '220px', margin: 0, padding: '16px', border: isCompleted ? '1px solid var(--success)' : '1px solid var(--border-glass)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-                    <span style={{ fontWeight: 'bold', fontSize: '15px' }}>{goal.title}</span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', gap: '8px' }}>
+                    <span style={{ fontWeight: 'bold', fontSize: '15px', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{goal.title}</span>
                     <span style={{ fontSize: '13px', fontWeight: 'bold', color: isCompleted ? 'var(--success)' : 'var(--primary)' }}>{percent.toFixed(0)}%</span>
+                    <button onClick={() => setConfirmDeleteGoal(goal.id)} style={{ color: '#ff7b72', opacity: 0.7, flexShrink: 0 }}><Trash2 size={15} /></button>
                   </div>
                   <div style={{ width: '100%', height: '6px', backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: '3px', overflow: 'hidden', marginBottom: '12px' }}>
                     <div style={{ width: `${percent}%`, height: '100%', backgroundColor: isCompleted ? 'var(--success)' : 'var(--primary)', transition: 'width 0.5s', boxShadow: '0 0 10px var(--primary)' }}></div>
@@ -317,7 +328,7 @@ const Home: React.FC = () => {
                     {style.symbol}
                   </button>
                   <span style={{ flex: 1, textDecoration: style.textDecoration, color: style.textColor, fontSize: '15px' }}>{task.text}</span>
-                  <button onClick={() => handleDeleteTask(task.id)} style={{ color: '#ff7b72', opacity: 0.7 }}><Trash2 size={16} /></button>
+                  <button onClick={() => setConfirmDeleteTask(task.id)} style={{ color: '#ff7b72', opacity: 0.7 }}><Trash2 size={16} /></button>
                 </div>
               );
             })
@@ -351,6 +362,24 @@ const Home: React.FC = () => {
             <button onClick={handleFundGoal} className="btn-primary">Nạp tiền</button>
           </div>
         </div>
+      )}
+
+      {confirmDeleteGoal && (
+        <ConfirmDialog
+          title="Xoá mục tiêu này?"
+          message="Toàn bộ tiến trình đã nạp cho mục tiêu này sẽ mất, không thể khôi phục."
+          onConfirm={() => handleDeleteGoal(confirmDeleteGoal)}
+          onCancel={() => setConfirmDeleteGoal(null)}
+        />
+      )}
+
+      {confirmDeleteTask && (
+        <ConfirmDialog
+          title="Xoá việc này?"
+          message="Việc cần làm này sẽ bị xoá khỏi danh sách của ngày đang xem."
+          onConfirm={() => handleDeleteTask(confirmDeleteTask)}
+          onCancel={() => setConfirmDeleteTask(null)}
+        />
       )}
 
       {showHallModal && (

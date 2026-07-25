@@ -107,3 +107,10 @@
   50% { background-position: 100% 50%; }
   100% { background-position: 0% 50%; }
 }
+
+/* Ẩn thanh điều hướng khi bàn phím ảo bật lên (dựa vào chiều cao màn hình bị thu hẹp) để tránh bị nhảy lên che nội dung */
+@media screen and (max-height: 500px) {
+  .bottom-nav {
+    display: none !important;
+  }
+}
