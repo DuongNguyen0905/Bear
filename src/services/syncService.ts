@@ -36,7 +36,14 @@ export function onSyncStatusChange(listener: (status: SyncStatus) => void): () =
 export async function signUp(email: string, password: string): Promise<{ hasSession: boolean }> {
   if (!supabase) throw new Error('Chưa cấu hình đám mây (thiếu VITE_SUPABASE_URL/ANON_KEY).');
   const { data, error } = await supabase.auth.signUp({ email, password });
-  if (error) throw error;
+  if (error) {
+    // Supabase trả lỗi tiếng Anh "User already registered" — dịch lại và gợi ý luôn hướng xử lý
+    // vì đây là lỗi thường gặp nhất (bấm nhầm Đăng Ký khi email đã có tài khoản).
+    if (/already registered/i.test(error.message)) {
+      throw new Error('Email này đã được đăng ký trước đó — hãy bấm "Đăng Nhập" thay vì "Đăng Ký".');
+    }
+    throw error;
+  }
   // Nếu project tắt "Confirm email", Supabase trả về session ngay, không cần xác nhận gì thêm.
   return { hasSession: !!data.session };
 }
