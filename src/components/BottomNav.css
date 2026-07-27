@@ -108,7 +108,13 @@
   100% { background-position: 0% 50%; }
 }
 
-/* Ẩn thanh điều hướng khi bàn phím ảo bật lên (dựa vào chiều cao màn hình bị thu hẹp) để tránh bị nhảy lên che nội dung */
+/* Ẩn thanh điều hướng khi bàn phím ảo bật lên. Cách chính: class do sự kiện
+   bàn phím thật của Android gắn vào <body> (xem App.tsx). Media query bên
+   dưới chỉ là lưới an toàn dự phòng cho các trường hợp layout vẫn co lại. */
+body.keyboard-open .bottom-nav {
+  display: none !important;
+}
+
 @media screen and (max-height: 500px) {
   .bottom-nav {
     display: none !important;
