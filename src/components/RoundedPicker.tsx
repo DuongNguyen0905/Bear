@@ -1,5 +1,7 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAndroidBack } from '../hooks/useAndroidBack';
+
+const TRANSITION_MS = 200;
 
 interface Option {
   value: string;
@@ -16,25 +18,41 @@ interface RoundedPickerProps {
 
 // Bảng chọn dạng lưới nút bo tròn — thay cho <select> gốc, vì phần dropdown
 // xổ ra của trình duyệt/hệ điều hành không thể bo góc theo ý muốn.
+// Trượt lên mượt lúc mở và trượt xuống mượt lúc đóng (không tắt đột ngột).
 const RoundedPicker: React.FC<RoundedPickerProps> = ({ title, options, value, onChange, onClose }) => {
-  useAndroidBack(true, onClose);
+  const [visible, setVisible] = useState(false);
+  const [closing, setClosing] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setVisible(true), 10);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const requestClose = (after: () => void) => {
+    setClosing(true);
+    setTimeout(after, TRANSITION_MS);
+  };
+
+  useAndroidBack(true, () => requestClose(onClose));
+
+  const active = visible && !closing;
 
   return (
     <div
-      onClick={onClose}
-      style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(6px)', zIndex: 4500, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}
+      onClick={() => requestClose(onClose)}
+      style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(6px)', zIndex: 4500, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', opacity: active ? 1 : 0, transition: `opacity ${TRANSITION_MS}ms ease` }}
     >
       <div
         className="glass-panel"
         onClick={(e) => e.stopPropagation()}
-        style={{ width: '100%', maxWidth: '480px', borderRadius: '28px 28px 0 0', padding: '20px', maxHeight: '60vh', overflowY: 'auto', animation: 'slideUp 250ms cubic-bezier(0.175, 0.885, 0.32, 1.275)', marginBottom: 0 }}
+        style={{ width: '100%', maxWidth: '480px', borderRadius: '28px 28px 0 0', padding: '20px', maxHeight: '60vh', overflowY: 'auto', marginBottom: 0, transform: active ? 'translateY(0)' : 'translateY(40px)', transition: `transform ${TRANSITION_MS}ms cubic-bezier(0.175, 0.885, 0.32, 1.275)` }}
       >
         <h4 style={{ margin: '0 0 16px 0', textAlign: 'center' }}>{title}</h4>
         <div className="no-scrollbar" style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', justifyContent: 'center' }}>
           {options.map((opt) => (
             <button
               key={opt.value}
-              onClick={() => { onChange(opt.value); onClose(); }}
+              onClick={() => requestClose(() => onChange(opt.value))}
               style={{
                 padding: '10px 18px', borderRadius: 'var(--radius-full)', fontWeight: 700, fontSize: '13px',
                 background: value === opt.value ? 'var(--gemini-grad)' : 'rgba(255,255,255,0.06)',

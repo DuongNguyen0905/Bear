@@ -1,10 +1,11 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { Home, Camera, BookHeart, PenLine, Receipt, X } from 'lucide-react';
 import './BottomNav.css';
 import { useDate } from '../contexts/DateContext';
 import { memoryService } from '../services/memoryService';
 import { useAndroidBack } from '../hooks/useAndroidBack';
+import { useClosingTransition } from '../hooks/useClosingTransition';
 
 // Mặc định luôn dùng bộ lọc "Đậm đà" cho ảnh chụp, không cần người dùng chọn lại.
 const VIVID_FILTER = 'saturate(2) contrast(1.2)';
@@ -15,8 +16,16 @@ const BottomNav: React.FC = () => {
   const { dateKey } = useDate();
 
   const [editingPhoto, setEditingPhoto] = useState<string | null>(null);
+  const [lastPhoto, setLastPhoto] = useState<string | null>(null);
   const [caption, setCaption] = useState('');
   const [isSavingPhoto, setIsSavingPhoto] = useState(false);
+  const editorT = useClosingTransition(!!editingPhoto);
+
+  // Giữ lại ảnh vừa chụp trong lúc màn hình đang mờ dần đi để đóng, tránh
+  // ảnh biến mất trắng trơn giữa chừng animation (editingPhoto đã về null).
+  useEffect(() => {
+    if (editingPhoto) setLastPhoto(editingPhoto);
+  }, [editingPhoto]);
 
   useAndroidBack(!!editingPhoto, () => closeEditor());
 
@@ -92,8 +101,8 @@ const BottomNav: React.FC = () => {
 
   return (
     <>
-      {editingPhoto && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#000', zIndex: 9999, display: 'flex', flexDirection: 'column', animation: 'fadeIn 200ms ease-out' }}>
+      {editorT.shouldRender && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#000', zIndex: 9999, display: 'flex', flexDirection: 'column', opacity: editorT.active ? 1 : 0, transition: 'opacity 200ms ease' }}>
           <div style={{ padding: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(0,0,0,0.5)', zIndex: 10, flexShrink: 0 }}>
             <button onClick={closeEditor} style={{ color: 'white', background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '50%', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={20} /></button>
             <h3 style={{ margin: 0, color: 'white' }}>Khoảnh khắc này</h3>
@@ -101,7 +110,7 @@ const BottomNav: React.FC = () => {
           </div>
 
           <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', padding: '20px 20px 0' }}>
-            <img src={editingPhoto} alt="Preview" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', filter: VIVID_FILTER, borderRadius: '24px', boxShadow: '0 10px 40px rgba(0,0,0,0.5)' }} />
+            <img src={lastPhoto ?? undefined} alt="Preview" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', filter: VIVID_FILTER, borderRadius: '24px', boxShadow: '0 10px 40px rgba(0,0,0,0.5)' }} />
           </div>
 
           <div style={{ flexShrink: 0, padding: '16px 20px', background: 'rgba(0,0,0,0.5)' }}>

@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { AlertTriangle } from 'lucide-react';
 import { useAndroidBack } from '../hooks/useAndroidBack';
 
 // Mật khẩu xác nhận bắt buộc cho MỌI thao tác xoá trong app.
 const DELETE_PASSWORD = '300826';
+const TRANSITION_MS = 180;
 
 interface ConfirmDialogProps {
   title: string;
@@ -17,29 +18,45 @@ interface ConfirmDialogProps {
 // Hộp thoại xác nhận dùng chung cho mọi thao tác xoá — bo tròn, đồng bộ
 // phong cách với phần còn lại của app, thay cho window.confirm() mặc định.
 // Bắt buộc nhập đúng mật khẩu mới thực sự xoá được, để tránh bấm nhầm.
+// Cả lúc mở và lúc đóng đều chuyển động mượt (fade + scale), không biến
+// mất đột ngột như trước.
 const ConfirmDialog: React.FC<ConfirmDialogProps> = ({ title, message, confirmLabel = 'Xoá', cancelLabel = 'Huỷ', onConfirm, onCancel }) => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [visible, setVisible] = useState(false);
+  const [closing, setClosing] = useState(false);
 
-  useAndroidBack(true, onCancel);
+  useEffect(() => {
+    const timer = setTimeout(() => setVisible(true), 10);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const requestClose = (after: () => void) => {
+    setClosing(true);
+    setTimeout(after, TRANSITION_MS);
+  };
+
+  useAndroidBack(true, () => requestClose(onCancel));
 
   const handleConfirm = () => {
     if (password !== DELETE_PASSWORD) {
       setError('Sai mật khẩu!');
       return;
     }
-    onConfirm();
+    requestClose(onConfirm);
   };
+
+  const active = visible && !closing;
 
   return (
     <div
-      onClick={onCancel}
-      style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)', zIndex: 6000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}
+      onClick={() => requestClose(onCancel)}
+      style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)', zIndex: 6000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', opacity: active ? 1 : 0, transition: `opacity ${TRANSITION_MS}ms ease` }}
     >
       <div
         className="glass-panel"
         onClick={(e) => e.stopPropagation()}
-        style={{ width: '100%', maxWidth: '340px', padding: '24px', borderRadius: '24px', textAlign: 'center', animation: 'fadeIn 150ms ease-out' }}
+        style={{ width: '100%', maxWidth: '340px', padding: '24px', borderRadius: '24px', textAlign: 'center', opacity: active ? 1 : 0, transform: active ? 'scale(1)' : 'scale(0.94)', transition: `opacity ${TRANSITION_MS}ms ease, transform ${TRANSITION_MS}ms cubic-bezier(0.175, 0.885, 0.32, 1.275)` }}
       >
         <div style={{ width: '52px', height: '52px', borderRadius: '50%', background: 'rgba(255, 123, 114, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
           <AlertTriangle size={26} color="var(--danger)" />
@@ -62,7 +79,7 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({ title, message, confirmLa
 
         <div style={{ display: 'flex', gap: '10px' }}>
           <button
-            onClick={onCancel}
+            onClick={() => requestClose(onCancel)}
             style={{ flex: 1, padding: '14px', borderRadius: '14px', background: 'rgba(255,255,255,0.06)', border: '1px solid var(--border-glass)', color: 'var(--text-main)', fontWeight: 700, fontSize: '14px' }}
           >
             {cancelLabel}

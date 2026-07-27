@@ -20,6 +20,7 @@ import {
 } from '../services/syncService';
 import type { User } from '@supabase/supabase-js';
 import { useAndroidBack } from '../hooks/useAndroidBack';
+import { useClosingTransition } from '../hooks/useClosingTransition';
 
 const Expenses: React.FC = () => {
   const { dateKey, selectedDate } = useDate();
@@ -53,6 +54,10 @@ const Expenses: React.FC = () => {
   useAndroidBack(showSettings, () => setShowSettings(false));
   useAndroidBack(showBudgetModal, () => setShowBudgetModal(false));
   useAndroidBack(showSavingsModal, () => setShowSavingsModal(false));
+
+  const settingsT = useClosingTransition(showSettings);
+  const budgetModalT = useClosingTransition(showBudgetModal);
+  const savingsModalT = useClosingTransition(showSavingsModal);
 
   const [cloudUser, setCloudUser] = useState<User | null>(null);
   const [cloudEmail, setCloudEmail] = useState('');
@@ -488,12 +493,13 @@ const Expenses: React.FC = () => {
       </div>
 
       {/* Settings Modal (Immersive Full Screen) */}
-      {showSettings && (
+      {settingsT.shouldRender && (
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
           backgroundColor: 'var(--bg-main)', zIndex: 3000,
           display: 'flex', flexDirection: 'column',
-          animation: 'slideInRight 0.3s ease-out',
+          transform: settingsT.active ? 'translateX(0)' : 'translateX(100%)',
+          transition: 'transform 250ms cubic-bezier(0.32, 0.72, 0, 1)',
         }}>
           <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', padding: '20px', backgroundColor: 'rgba(15, 15, 20, 0.8)', backdropFilter: 'blur(10px)', zIndex: 10, borderBottom: '1px solid var(--border-glass)' }}>
             <button onClick={() => setShowSettings(false)} style={{ background: 'none', border: 'none', padding: '5px', marginRight: '15px' }}>
@@ -599,14 +605,14 @@ const Expenses: React.FC = () => {
       )}
 
       {/* Budget Modal */}
-      {showBudgetModal && (
+      {budgetModalT.shouldRender && (
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
           backgroundColor: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(10px)', zIndex: 3000,
           display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px',
-          animation: 'fadeIn 0.2s ease-out',
+          opacity: budgetModalT.active ? 1 : 0, transition: 'opacity 200ms ease',
         }}>
-          <div className="card glass-panel" style={{ width: '100%', padding: '24px', background: '#14141e' }}>
+          <div className="card glass-panel" style={{ width: '100%', padding: '24px', background: '#14141e', opacity: budgetModalT.active ? 1 : 0, transform: budgetModalT.active ? 'scale(1)' : 'scale(0.94)', transition: 'opacity 200ms ease, transform 200ms cubic-bezier(0.175, 0.885, 0.32, 1.275)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
               <h3 style={{ margin: 0, color: 'white' }}>Cấu hình Hạn mức</h3>
               <button onClick={() => setShowBudgetModal(false)} style={{ background: 'none', border: 'none', color: 'white', fontSize: '20px', fontWeight: 'bold', cursor: 'pointer' }}>X</button>
@@ -638,14 +644,14 @@ const Expenses: React.FC = () => {
       )}
 
       {/* Savings Details Modal */}
-      {showSavingsModal && (
+      {savingsModalT.shouldRender && (
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
           backgroundColor: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(10px)', zIndex: 3000,
           display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px',
-          animation: 'fadeIn 0.2s ease-out',
+          opacity: savingsModalT.active ? 1 : 0, transition: 'opacity 200ms ease',
         }}>
-          <div className="card glass-panel" style={{ width: '100%', maxHeight: '90vh', display: 'flex', flexDirection: 'column', padding: '24px', background: '#14141e', borderRadius: '24px' }}>
+          <div className="card glass-panel" style={{ width: '100%', maxHeight: '90vh', display: 'flex', flexDirection: 'column', padding: '24px', background: '#14141e', borderRadius: '24px', opacity: savingsModalT.active ? 1 : 0, transform: savingsModalT.active ? 'scale(1)' : 'scale(0.94)', transition: 'opacity 200ms ease, transform 200ms cubic-bezier(0.175, 0.885, 0.32, 1.275)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px', alignItems: 'center' }}>
               <h3 style={{ margin: 0, color: 'white' }}>Chi Tiết Tiết Kiệm</h3>
               <button onClick={() => setShowSavingsModal(false)} style={{ background: 'none', border: 'none', color: 'white', fontSize: '20px', fontWeight: 'bold', cursor: 'pointer' }}>X</button>

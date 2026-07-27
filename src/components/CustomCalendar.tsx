@@ -1,12 +1,14 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
-import { 
-  format, addMonths, subMonths, startOfMonth, endOfMonth, 
+import {
+  format, addMonths, subMonths, startOfMonth, endOfMonth,
   startOfWeek, endOfWeek, isSameMonth, isSameDay, addDays,
   isAfter, startOfDay
 } from 'date-fns';
 import { vi } from 'date-fns/locale';
 import { useAndroidBack } from '../hooks/useAndroidBack';
+
+const TRANSITION_MS = 220;
 
 interface CustomCalendarProps {
   selectedDate: Date;
@@ -18,9 +20,23 @@ interface CustomCalendarProps {
 const CustomCalendar: React.FC<CustomCalendarProps> = ({ selectedDate, onDateSelect, onClose, allowFuture = false }) => {
   const [currentMonth, setCurrentMonth] = useState(selectedDate || new Date());
   const [viewMode, setViewMode] = useState<'calendar' | 'year'>('calendar');
+  const [visible, setVisible] = useState(false);
+  const [closing, setClosing] = useState(false);
   const today = startOfDay(new Date());
 
-  useAndroidBack(true, onClose);
+  useEffect(() => {
+    const timer = setTimeout(() => setVisible(true), 10);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const requestClose = (after: () => void) => {
+    setClosing(true);
+    setTimeout(after, TRANSITION_MS);
+  };
+
+  const active = visible && !closing;
+
+  useAndroidBack(true, () => requestClose(onClose));
 
   const nextMonth = () => setCurrentMonth(addMonths(currentMonth, 1));
   const prevMonth = () => setCurrentMonth(subMonths(currentMonth, 1));
@@ -107,7 +123,7 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({ selectedDate, onDateSel
         days.push(
           <div 
             key={dayKey} 
-            onClick={() => { if (!isFuture && isCurrentMonth) onDateSelect(cloneDay); }}
+            onClick={() => { if (!isFuture && isCurrentMonth) requestClose(() => onDateSelect(cloneDay)); }}
             style={{ width: '14.28%', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '6px 0', opacity: isCurrentMonth ? 1 : 0.3, cursor: (!isFuture && isCurrentMonth) ? 'pointer' : 'default' }}
           >
             <div style={{
@@ -135,19 +151,18 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({ selectedDate, onDateSel
 
   return (
     <div
-      onClick={onClose}
-      style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 3000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', backdropFilter: 'blur(5px)' }}
+      onClick={() => requestClose(onClose)}
+      style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 3000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', backdropFilter: 'blur(5px)', opacity: active ? 1 : 0, transition: `opacity ${TRANSITION_MS}ms ease` }}
     >
-      <div onClick={(e) => e.stopPropagation()} style={{ backgroundColor: '#ffffff', borderRadius: '30px', width: '100%', maxWidth: '360px', overflow: 'hidden', boxShadow: '0 20px 50px rgba(0,0,0,0.2)', animation: 'slideUp 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)' }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ backgroundColor: '#ffffff', borderRadius: '30px', width: '100%', maxWidth: '360px', overflow: 'hidden', boxShadow: '0 20px 50px rgba(0,0,0,0.2)', transform: active ? 'translateY(0)' : 'translateY(30px)', transition: `transform ${TRANSITION_MS}ms cubic-bezier(0.175, 0.885, 0.32, 1.275)` }}>
         <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '16px 20px 0', backgroundColor: '#f4f9f9' }}>
-           <button onClick={onClose} style={{ background: '#eaf4f4', border: 'none', padding: '8px', borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+           <button onClick={() => requestClose(onClose)} style={{ background: '#eaf4f4', border: 'none', padding: '8px', borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
              <X color="var(--primary-dark)" size={20} />
            </button>
         </div>
         {renderHeader()}
         {viewMode === 'calendar' ? <>{renderDays()}{renderCells()}</> : renderYearSelector()}
       </div>
-      <style>{`@keyframes slideUp { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }`}</style>
     </div>
   );
 };

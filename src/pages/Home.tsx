@@ -18,6 +18,7 @@ import type { Goal, Task } from '../utils/db';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { useAndroidBack } from '../hooks/useAndroidBack';
+import { useClosingTransition } from '../hooks/useClosingTransition';
 
 const Home: React.FC = () => {
   const { dateKey } = useDate();
@@ -212,6 +213,10 @@ const Home: React.FC = () => {
   useAndroidBack(!!showFundModal, () => setShowFundModal(null));
   useAndroidBack(showHallModal, () => setShowHallModal(false));
 
+  const goalModalT = useClosingTransition(showGoalModal);
+  const fundModalT = useClosingTransition(!!showFundModal);
+  const hallModalT = useClosingTransition(showHallModal);
+
   return (
     <div className="page-container" style={{ paddingBottom: '120px' }}>
       {/* Premium Header */}
@@ -337,9 +342,9 @@ const Home: React.FC = () => {
       </div>
 
       {/* Modals */}
-      {showGoalModal && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(10px)', zIndex: 4000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-          <div className="card glass-panel" style={{ width: '100%', padding: '24px', background: '#14141e' }}>
+      {goalModalT.shouldRender && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(10px)', zIndex: 4000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', opacity: goalModalT.active ? 1 : 0, transition: 'opacity 200ms ease' }}>
+          <div className="card glass-panel" style={{ width: '100%', padding: '24px', background: '#14141e', opacity: goalModalT.active ? 1 : 0, transform: goalModalT.active ? 'scale(1)' : 'scale(0.94)', transition: 'opacity 200ms ease, transform 200ms cubic-bezier(0.175, 0.885, 0.32, 1.275)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
               <h3 style={{ margin: 0 }}>Mục tiêu mới</h3>
               <button onClick={() => setShowGoalModal(false)}><X size={20} color="white" /></button>
@@ -351,9 +356,9 @@ const Home: React.FC = () => {
         </div>
       )}
 
-      {showFundModal && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(10px)', zIndex: 4000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-          <div className="card glass-panel" style={{ width: '100%', padding: '24px', background: '#14141e' }}>
+      {fundModalT.shouldRender && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(10px)', zIndex: 4000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', opacity: fundModalT.active ? 1 : 0, transition: 'opacity 200ms ease' }}>
+          <div className="card glass-panel" style={{ width: '100%', padding: '24px', background: '#14141e', opacity: fundModalT.active ? 1 : 0, transform: fundModalT.active ? 'scale(1)' : 'scale(0.94)', transition: 'opacity 200ms ease, transform 200ms cubic-bezier(0.175, 0.885, 0.32, 1.275)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
               <h3 style={{ margin: 0 }}>Bỏ ống heo</h3>
               <button onClick={() => setShowFundModal(null)}><X size={20} color="white" /></button>
@@ -382,8 +387,8 @@ const Home: React.FC = () => {
         />
       )}
 
-      {showHallModal && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'var(--bg-main)', zIndex: 5000, display: 'flex', flexDirection: 'column', animation: 'slideInRight 0.3s ease-out', overflowY: 'auto' }}>
+      {hallModalT.shouldRender && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'var(--bg-main)', zIndex: 5000, display: 'flex', flexDirection: 'column', overflowY: 'auto', transform: hallModalT.active ? 'translateX(0)' : 'translateX(100%)', transition: 'transform 250ms cubic-bezier(0.32, 0.72, 0, 1)' }}>
           <div style={{ padding: '20px', backgroundColor: 'rgba(15, 15, 20, 0.8)', backdropFilter: 'blur(20px)', display: 'flex', alignItems: 'center', position: 'sticky', top: 0, zIndex: 10 }}>
             <button onClick={() => setShowHallModal(false)} style={{ marginRight: '15px', color: 'white', background: 'none', border: 'none' }}><ChevronLeft size={24} /></button>
             <h3 style={{ margin: 0, flex: 1, textAlign: 'center', color: 'white' }}>Thành tích & Tổng kết</h3>
