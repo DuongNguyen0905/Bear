@@ -16,6 +16,9 @@ import {
   pullBackup,
   getSyncStatus,
   onSyncStatusChange,
+  requestPasswordReset,
+  updatePassword,
+  onPasswordRecovery,
   type SyncStatus,
 } from '../services/syncService';
 import type { User } from '@supabase/supabase-js';
@@ -67,6 +70,10 @@ const Expenses: React.FC = () => {
   const [cloudLoading, setCloudLoading] = useState(false);
   const [cloudError, setCloudError] = useState('');
   const [syncStatus, setSyncStatus] = useState<SyncStatus>(getSyncStatus());
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
+  const [passwordRecoveryMode, setPasswordRecoveryMode] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
 
   useEffect(() => {
     loadData();
@@ -76,7 +83,16 @@ const Expenses: React.FC = () => {
     if (!isCloudConfigured) return;
     getCurrentUser().then(setCloudUser);
     const unsubscribe = onSyncStatusChange(setSyncStatus);
-    return unsubscribe;
+    // Người dùng bấm link đặt lại mật khẩu trong email sẽ mở lại app ở đây với
+    // một session khôi phục — tự mở khung Cài đặt và hiện form đặt mật khẩu mới.
+    const unsubscribeRecovery = onPasswordRecovery(() => {
+      setPasswordRecoveryMode(true);
+      setShowSettings(true);
+    });
+    return () => {
+      unsubscribe();
+      unsubscribeRecovery();
+    };
   }, []);
 
   useEffect(() => {
@@ -228,6 +244,41 @@ const Expenses: React.FC = () => {
   const handleCloudSignOut = async () => {
     await signOut();
     setCloudUser(null);
+  };
+
+  const handleRequestPasswordReset = async () => {
+    if (!cloudEmail.trim()) return;
+    setCloudLoading(true);
+    setCloudError('');
+    try {
+      await requestPasswordReset(cloudEmail.trim());
+      setResetSent(true);
+    } catch (err: any) {
+      setCloudError(err?.message || 'Có lỗi xảy ra, thử lại sau.');
+    } finally {
+      setCloudLoading(false);
+    }
+  };
+
+  const handleSetNewPassword = async () => {
+    if (newPassword.length < 6) {
+      setCloudError('Mật khẩu mới cần ít nhất 6 ký tự.');
+      return;
+    }
+    setCloudLoading(true);
+    setCloudError('');
+    try {
+      await updatePassword(newPassword);
+      setPasswordRecoveryMode(false);
+      setNewPassword('');
+      const user = await getCurrentUser();
+      setCloudUser(user);
+      alert('Đã đặt mật khẩu mới! Từ giờ đăng nhập bằng mật khẩu này.');
+    } catch (err: any) {
+      setCloudError(err?.message || 'Có lỗi xảy ra, thử lại sau.');
+    } finally {
+      setCloudLoading(false);
+    }
   };
 
   const handleCloudPush = async () => {
@@ -540,6 +591,27 @@ const Expenses: React.FC = () => {
                 <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
                   Chưa cấu hình đám mây. Thêm VITE_SUPABASE_URL và VITE_SUPABASE_ANON_KEY vào file .env rồi build lại app.
                 </p>
+              ) : passwordRecoveryMode ? (
+                <>
+                  <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '10px' }}>
+                    Nhập mật khẩu mới cho tài khoản của bạn.
+                  </p>
+                  <div className="gemini-input-wrapper" style={{ marginBottom: '10px' }}>
+                    <input
+                      type="password" placeholder="Mật khẩu mới" value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      style={{ width: '100%', padding: '12px', borderRadius: '10px', border: 'none', backgroundColor: 'transparent', color: 'white' }}
+                    />
+                  </div>
+                  {cloudError && <p style={{ fontSize: '12px', color: '#ff6b6b', marginBottom: '10px' }}>{cloudError}</p>}
+                  <button
+                    disabled={cloudLoading || !newPassword}
+                    onClick={handleSetNewPassword}
+                    className="btn-primary" style={{ width: '100%', padding: '12px', borderRadius: '10px' }}
+                  >
+                    Đặt mật khẩu mới
+                  </button>
+                </>
               ) : cloudUser ? (
                 <>
                   <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '10px' }}>
@@ -580,7 +652,7 @@ const Expenses: React.FC = () => {
                     />
                   </div>
                   {cloudError && <p style={{ fontSize: '12px', color: '#ff6b6b', marginBottom: '10px' }}>{cloudError}</p>}
-                  <div style={{ display: 'flex', gap: '10px' }}>
+                  <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
                     <button
                       disabled={cloudLoading || !cloudEmail || !cloudPassword}
                       onClick={() => handleCloudAuth('signin')}
@@ -596,6 +668,32 @@ const Expenses: React.FC = () => {
                       Đăng Ký
                     </button>
                   </div>
+
+                  {!showForgotPassword ? (
+                    <button
+                      onClick={() => { setShowForgotPassword(true); setResetSent(false); setCloudError(''); }}
+                      style={{ width: '100%', padding: '6px', background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '12px', textAlign: 'center' }}
+                    >
+                      Quên mật khẩu?
+                    </button>
+                  ) : resetSent ? (
+                    <p style={{ fontSize: '12px', color: 'var(--success)', textAlign: 'center' }}>
+                      Đã gửi email đặt lại mật khẩu tới {cloudEmail}. Mở email đó và bấm vào link để đặt mật khẩu mới.
+                    </p>
+                  ) : (
+                    <div style={{ borderTop: '1px solid var(--border-glass)', paddingTop: '10px', marginTop: '4px' }}>
+                      <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '8px' }}>
+                        Nhập email ở trên rồi bấm gửi, hệ thống sẽ gửi link đặt lại mật khẩu.
+                      </p>
+                      <button
+                        disabled={cloudLoading || !cloudEmail}
+                        onClick={handleRequestPasswordReset}
+                        className="btn-primary" style={{ width: '100%', padding: '10px', borderRadius: '10px', background: 'rgba(255,255,255,0.1)', color: 'var(--primary)', border: '1px solid var(--border-glass)' }}
+                      >
+                        Gửi email đặt lại mật khẩu
+                      </button>
+                    </div>
+                  )}
                 </>
               )}
             </div>

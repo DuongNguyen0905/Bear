@@ -60,6 +60,43 @@ export async function signOut(): Promise<void> {
   setStatus('idle');
 }
 
+// Trang web (GitHub Pages) dùng làm điểm quay lại khi người dùng bấm link đặt
+// lại mật khẩu trong email — APK không có domain https riêng để mở link đó
+// ngay trong app, nên link luôn mở ra bản web, người dùng đặt mật khẩu mới ở đó.
+const RESET_PASSWORD_REDIRECT_URL = 'https://duongnguyen0905.github.io/Bear/';
+
+export async function requestPasswordReset(email: string): Promise<void> {
+  if (!supabase) throw new Error('Chưa cấu hình đám mây (thiếu VITE_SUPABASE_URL/ANON_KEY).');
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: RESET_PASSWORD_REDIRECT_URL,
+  });
+  if (error) throw error;
+}
+
+export async function updatePassword(newPassword: string): Promise<void> {
+  if (!supabase) throw new Error('Chưa cấu hình đám mây (thiếu VITE_SUPABASE_URL/ANON_KEY).');
+  const { error } = await supabase.auth.updateUser({ password: newPassword });
+  if (error) throw error;
+}
+
+// Khi người dùng bấm link đặt lại mật khẩu trong email, Supabase tự nhận diện
+// session khôi phục từ URL và phát ra sự kiện này — dùng để hiện form đặt mật
+// khẩu mới thay vì màn hình đăng nhập bình thường.
+const recoveryListeners = new Set<() => void>();
+
+export function onPasswordRecovery(listener: () => void): () => void {
+  recoveryListeners.add(listener);
+  return () => recoveryListeners.delete(listener);
+}
+
+if (supabase) {
+  supabase.auth.onAuthStateChange((event) => {
+    if (event === 'PASSWORD_RECOVERY') {
+      recoveryListeners.forEach((listener) => listener());
+    }
+  });
+}
+
 export async function getCurrentUser(): Promise<User | null> {
   if (!supabase) return null;
   const { data } = await supabase.auth.getUser();
