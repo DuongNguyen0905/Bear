@@ -21,6 +21,7 @@ import {
 import type { User } from '@supabase/supabase-js';
 import { useAndroidBack } from '../hooks/useAndroidBack';
 import { useClosingTransition } from '../hooks/useClosingTransition';
+import { formatThousands, stripThousands } from '../utils/formatNumber';
 
 const Expenses: React.FC = () => {
   const { dateKey, selectedDate } = useDate();
@@ -374,12 +375,12 @@ const Expenses: React.FC = () => {
         <div style={{ display: 'flex', gap: '10px', marginBottom: '16px' }}>
           <div className="gemini-input-wrapper" style={{ flex: 2, display: 'flex', alignItems: 'center' }}>
             <input
-              type="number"
-              min="1"
+              type="text"
+              inputMode="numeric"
               placeholder="Số tiền"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              style={{ flex: 1, padding: '16px', borderRadius: '14px', border: 'none', fontSize: '16px', fontWeight: 'bold' }} 
+              value={formatThousands(amount)}
+              onChange={(e) => setAmount(stripThousands(e.target.value))}
+              style={{ flex: 1, padding: '16px', borderRadius: '14px', border: 'none', fontSize: '16px', fontWeight: 'bold' }}
             />
             {activeTab === 'expense' && (
               <>
@@ -620,9 +621,9 @@ const Expenses: React.FC = () => {
             
             <h4 style={{ margin: '0 0 10px 0', color: 'var(--text-main)' }}>Số dư ban đầu tháng {format(selectedDate, 'MM/yyyy')}</h4>
             <div className="gemini-input-wrapper" style={{ marginBottom: '20px' }}>
-              <input 
-                type="number" value={initialBalance} placeholder="Ví dụ: 5000000"
-                onChange={(e) => setInitialBalance(e.target.value)}
+              <input
+                type="text" inputMode="numeric" value={formatThousands(initialBalance)} placeholder="Ví dụ: 5.000.000"
+                onChange={(e) => setInitialBalance(stripThousands(e.target.value))}
                 style={{ width: '100%', padding: '14px', borderRadius: '10px', border: 'none', backgroundColor: 'transparent', color: 'white' }}
               />
             </div>
@@ -685,11 +686,12 @@ const Expenses: React.FC = () => {
                       <div style={{ flex: 1 }}>
                         <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Số dư ban đầu</span>
                         {editingMonth === detail.month ? (
-                          <input 
-                            type="number" 
+                          <input
+                            type="text"
+                            inputMode="numeric"
                             autoFocus
-                            value={editInitialBalance}
-                            onChange={(e) => setEditInitialBalance(e.target.value)}
+                            value={formatThousands(editInitialBalance)}
+                            onChange={(e) => setEditInitialBalance(stripThousands(e.target.value))}
                             style={{ width: '100%', background: 'transparent', border: 'none', borderBottom: '1px solid var(--primary)', color: 'var(--text-main)', fontSize: '16px', fontWeight: 'bold', outline: 'none', padding: '4px 0' }}
                           />
                         ) : (

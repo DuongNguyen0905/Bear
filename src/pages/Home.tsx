@@ -19,6 +19,7 @@ import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { useAndroidBack } from '../hooks/useAndroidBack';
 import { useClosingTransition } from '../hooks/useClosingTransition';
+import { formatThousands, stripThousands } from '../utils/formatNumber';
 
 const Home: React.FC = () => {
   const { dateKey } = useDate();
@@ -350,7 +351,7 @@ const Home: React.FC = () => {
               <button onClick={() => setShowGoalModal(false)}><X size={20} color="white" /></button>
             </div>
             <input type="text" placeholder="Ví dụ: Mua iPhone 16" value={newGoalTitle} onChange={e => setNewGoalTitle(e.target.value)} style={{ marginBottom: '15px' }} />
-            <input type="number" min="1" placeholder="Số tiền (VNĐ)" value={newGoalTarget} onChange={e => setNewGoalTarget(e.target.value)} style={{ marginBottom: '24px' }} />
+            <input type="text" inputMode="numeric" placeholder="Số tiền (VNĐ)" value={formatThousands(newGoalTarget)} onChange={e => setNewGoalTarget(stripThousands(e.target.value))} style={{ marginBottom: '24px' }} />
             <button onClick={handleCreateGoal} className="btn-primary">Bắt đầu tích lũy</button>
           </div>
         </div>
@@ -363,7 +364,7 @@ const Home: React.FC = () => {
               <h3 style={{ margin: 0 }}>Bỏ ống heo</h3>
               <button onClick={() => setShowFundModal(null)}><X size={20} color="white" /></button>
             </div>
-            <input type="number" min="1" placeholder="Số tiền nạp (VNĐ)" value={fundAmount} onChange={e => setFundAmount(e.target.value)} style={{ marginBottom: '24px' }} />
+            <input type="text" inputMode="numeric" placeholder="Số tiền nạp (VNĐ)" value={formatThousands(fundAmount)} onChange={e => setFundAmount(stripThousands(e.target.value))} style={{ marginBottom: '24px' }} />
             <button onClick={handleFundGoal} className="btn-primary">Nạp tiền</button>
           </div>
         </div>
