@@ -254,7 +254,9 @@ const Expenses: React.FC = () => {
 
   // Prepare chart data
   const categoryTotals: Record<string, number> = {};
-  transactions.filter(t => t.type === 'expense').forEach(t => {
+  // Bỏ các khoản nạp vào mục tiêu (goalId) khỏi biểu đồ — đó là tiền chuyển
+  // sang tiết kiệm, không phải chi tiêu theo danh mục thật.
+  transactions.filter(t => t.type === 'expense' && !t.goalId).forEach(t => {
     categoryTotals[t.category] = (categoryTotals[t.category] || 0) + t.amount;
   });
   

@@ -57,6 +57,10 @@ export interface Transaction {
   category: string;
   note?: string;
   createdAt: number;
+  // Gắn với mục tiêu khi giao dịch này là tiền nạp vào một mục tiêu tiết kiệm
+  // (xem goalService.fundGoal) — dùng để loại khỏi biểu đồ chi tiêu theo danh
+  // mục, và để xóa/hoàn lại đúng khi mục tiêu bị xóa.
+  goalId?: string;
 }
 
 export interface Setting {

@@ -161,7 +161,7 @@ const Home: React.FC = () => {
   const handleFundGoal = async () => {
     const amount = parseInt(fundAmount);
     if (!showFundModal || !amount || amount <= 0) return;
-    await goalService.updateGoalProgress(showFundModal, amount);
+    await goalService.fundGoal(showFundModal, amount, dateKey);
     setFundAmount('');
     setShowFundModal(null);
     loadData();
