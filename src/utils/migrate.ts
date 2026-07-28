@@ -14,11 +14,9 @@ export const migrateDataToDexie = async () => {
   try {
     const hasMigrated = localStorage.getItem(HAS_MIGRATED_KEY);
     if (hasMigrated === 'true') {
-      console.log('Database already migrated to Dexie.js');
       return true;
     }
 
-    console.log('Starting migration from localforage to Dexie.js...');
     const oldEntries: Record<string, any> = await localforage.getItem(STORE_KEY) || {};
     
     const memoriesToInsert: any[] = [];
@@ -63,7 +61,6 @@ export const migrateDataToDexie = async () => {
       }
     });
 
-    console.log('Migration completed successfully!');
     localStorage.setItem(HAS_MIGRATED_KEY, 'true');
     return true;
 

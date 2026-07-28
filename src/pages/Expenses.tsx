@@ -4,7 +4,6 @@ import { useDate } from '../contexts/DateContext';
 import { Settings, Plus, ChevronLeft, TrendingDown, TrendingUp, PieChart as PieChartIcon, AlertTriangle, CheckCircle, Activity, PiggyBank, Camera, Download, Upload, Edit2, Save } from 'lucide-react';
 import { format } from 'date-fns';
 import { PieChart, Pie, Tooltip, ResponsiveContainer, Cell, Legend } from 'recharts';
-import Tesseract from 'tesseract.js';
 import { exportDexieBackup, importDexieBackup } from '../utils/backup';
 import { useAndroidBack } from '../hooks/useAndroidBack';
 import { useClosingTransition } from '../hooks/useClosingTransition';
@@ -90,9 +89,11 @@ const Expenses: React.FC = () => {
 
     setIsScanning(true);
     try {
-      const { data: { text } } = await Tesseract.recognize(file, 'vie+eng', {
-        logger: m => console.log(m)
-      });
+      // Tải tesseract.js (thư viện OCR nặng, có wasm) đúng lúc cần dùng thay vì
+      // nhúng sẵn vào bundle chính — tính năng này ít dùng, không nên làm mọi
+      // người dùng tải thêm dữ liệu này ngay từ lúc mở app.
+      const { default: Tesseract } = await import('tesseract.js');
+      const { data: { text } } = await Tesseract.recognize(file, 'vie+eng');
       
       // Basic heuristic: look for large numbers separated by dots or commas
       const numbers = text.match(/\d{1,3}(?:[.,]\d{3})*(?:[.,]\d{2})?/g) || [];

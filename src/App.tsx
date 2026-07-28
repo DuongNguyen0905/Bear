@@ -1,14 +1,17 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, Suspense, lazy } from 'react';
 import { HashRouter as Router, Routes, Route } from 'react-router-dom';
 import { Keyboard } from '@capacitor/keyboard';
 import BottomNav from './components/BottomNav';
 import Home from './pages/Home';
-import Diary from './pages/Diary';
-import Expenses from './pages/Expenses';
-import Memory from './pages/Memory';
 import { DateProvider } from './contexts/DateContext';
 import { migrateDataToDexie } from './utils/migrate';
 import BackButtonHandler from './components/BackButtonHandler';
+
+// Home mở ngay khi vào app nên tải kèm luôn; 3 trang còn lại chỉ tải khi
+// người dùng thực sự bấm vào, giúp bundle chính nhỏ hơn và mở app nhanh hơn.
+const Diary = lazy(() => import('./pages/Diary'));
+const Expenses = lazy(() => import('./pages/Expenses'));
+const Memory = lazy(() => import('./pages/Memory'));
 
 const App: React.FC = () => {
   useEffect(() => {
@@ -38,12 +41,14 @@ const App: React.FC = () => {
         <BackButtonHandler />
         <div className="app-container">
           <div className="content-area no-scrollbar">
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/diary" element={<Diary />} />
-              <Route path="/expenses" element={<Expenses />} />
-              <Route path="/memory" element={<Memory />} />
-            </Routes>
+            <Suspense fallback={null}>
+              <Routes>
+                <Route path="/" element={<Home />} />
+                <Route path="/diary" element={<Diary />} />
+                <Route path="/expenses" element={<Expenses />} />
+                <Route path="/memory" element={<Memory />} />
+              </Routes>
+            </Suspense>
           </div>
           <BottomNav />
         </div>
