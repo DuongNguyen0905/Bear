@@ -28,12 +28,28 @@ export const exportDexieBackup = async (): Promise<boolean> => {
     if (Capacitor.isNativePlatform()) {
       // Trên app native (Android), tải qua thẻ <a> không thực sự lưu file xuống máy.
       // Ghi file thật vào bộ nhớ máy, sau đó mời người dùng chia sẻ ra Drive/Zalo/Gmail... để khôi phục trên máy khác.
-      const result = await Filesystem.writeFile({
+      //
+      // Dữ liệu có thể chứa hàng chục/hàng trăm MB ảnh base64 — gửi cả chuỗi khổng lồ đó
+      // qua cầu nối JS↔native trong một lệnh writeFile duy nhất từng làm app văng (crash)
+      // trên máy thật (dù chạy êm trên preview vì nhánh trình duyệt không qua cầu nối này).
+      // Ghi từng phần nhỏ để giảm kích thước mỗi lượt truyền qua cầu nối.
+      const CHUNK_SIZE = 1_000_000; // ~1MB mỗi lượt ghi
+      await Filesystem.writeFile({
         path: fileName,
-        data: jsonString,
+        data: jsonString.slice(0, CHUNK_SIZE),
         directory: Directory.Documents,
         encoding: Encoding.UTF8
       });
+      for (let offset = CHUNK_SIZE; offset < jsonString.length; offset += CHUNK_SIZE) {
+        await Filesystem.appendFile({
+          path: fileName,
+          data: jsonString.slice(offset, offset + CHUNK_SIZE),
+          directory: Directory.Documents,
+          encoding: Encoding.UTF8
+        });
+      }
+
+      const result = await Filesystem.getUri({ path: fileName, directory: Directory.Documents });
 
       try {
         await Share.share({
