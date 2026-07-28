@@ -2,7 +2,6 @@ import React, { useEffect } from 'react';
 import { HashRouter as Router, Routes, Route } from 'react-router-dom';
 import { Keyboard } from '@capacitor/keyboard';
 import BottomNav from './components/BottomNav';
-import SyncToast from './components/SyncToast';
 import Home from './pages/Home';
 import Diary from './pages/Diary';
 import Expenses from './pages/Expenses';
@@ -47,7 +46,6 @@ const App: React.FC = () => {
             </Routes>
           </div>
           <BottomNav />
-          <SyncToast />
         </div>
       </Router>
     </DateProvider>
