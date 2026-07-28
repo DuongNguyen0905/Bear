@@ -6,13 +6,14 @@ import { financeService } from '../services/financeService';
 import DateNavigator from '../components/DateNavigator';
 import RoundedPicker from '../components/RoundedPicker';
 import ConfirmDialog from '../components/ConfirmDialog';
+import CustomCalendar from '../components/CustomCalendar';
 
 const REVIEW_MONTH_OPTIONS = Array.from({ length: 12 }, (_, i) => ({ value: String(i + 1).padStart(2, '0'), label: `Tháng ${i + 1}` }));
 const REVIEW_YEAR_OPTIONS = Array.from({ length: 5 }, (_, i) => {
   const y = new Date().getFullYear() - i;
   return { value: String(y), label: `Năm ${y}` };
 });
-import { Plus, Trash2, ClipboardList, Target, Award, ChevronLeft, ChevronDown, X, TrendingUp, TrendingDown, Image as ImageIcon, BookOpen, Flame, Wallet, Trophy } from 'lucide-react';
+import { Plus, Trash2, ClipboardList, Target, Award, ChevronLeft, ChevronDown, X, TrendingUp, TrendingDown, Image as ImageIcon, BookOpen, Flame, Wallet, Trophy, CalendarClock } from 'lucide-react';
 import { db } from '../utils/db';
 import type { Goal, Task } from '../utils/db';
 import { useNavigate } from 'react-router-dom';
@@ -27,6 +28,8 @@ const Home: React.FC = () => {
   
   const [tasks, setTasks] = useState<any[]>([]);
   const [newTask, setNewTask] = useState('');
+  const [scheduleDate, setScheduleDate] = useState<Date | null>(null);
+  const [showScheduleCalendar, setShowScheduleCalendar] = useState(false);
   const [showReviewMonthPicker, setShowReviewMonthPicker] = useState(false);
   const [showReviewYearPicker, setShowReviewYearPicker] = useState(false);
 
@@ -105,13 +108,28 @@ const Home: React.FC = () => {
     await memoryService.updatePartial(dateKey, { tasks: updatedTasks });
   };
 
-  const handleAddTask = () => {
+  const handleAddTask = async () => {
     if (!newTask.trim()) return;
-    // Việc luôn được ghi cho đúng ngày đang xem trên thanh điều hướng ngày ở đầu trang —
-    // muốn ghi việc cho ngày khác thì chuyển ngày ở đó trước.
     const newTaskObj: Task = { id: Date.now().toString(), text: newTask.trim(), status: 'empty' };
-    handleSaveTasks([...tasks, newTaskObj]);
+
+    // Không chọn ngày riêng: việc được ghi cho đúng ngày đang xem trên thanh
+    // điều hướng ở đầu trang, như trước giờ.
+    const targetDateKey = scheduleDate ? format(scheduleDate, 'yyyy-MM-dd') : dateKey;
+
+    if (targetDateKey === dateKey) {
+      handleSaveTasks([...tasks, newTaskObj]);
+    } else {
+      // Đặt việc trước cho một ngày trong tương lai — lưu thẳng vào đúng ngày đó,
+      // không đụng đến danh sách của ngày đang xem. Khi người dùng mở app đúng
+      // ngày đó, Home sẽ tự tải tasks của ngày đó (vì dateKey lúc này = ngày đó)
+      // nên việc tự hiện ra, không cần cơ chế thông báo riêng.
+      const entry = await memoryService.getByDate(targetDateKey);
+      await memoryService.updatePartial(targetDateKey, { tasks: [...entry.tasks, newTaskObj] });
+      alert(`Đã đặt việc cho ngày ${format(scheduleDate as Date, 'dd/MM/yyyy')}. Đến ngày đó việc sẽ tự hiện ra ở đây.`);
+    }
+
     setNewTask('');
+    setScheduleDate(null);
   };
 
   const handleDeleteTask = (id: string) => {
@@ -310,7 +328,7 @@ const Home: React.FC = () => {
         <h4 style={{ margin: '0 0 16px 0', fontSize: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <ClipboardList size={20} color="var(--primary)" /> Việc cần làm
         </h4>
-        <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
+        <div style={{ display: 'flex', gap: '10px', marginBottom: scheduleDate ? '8px' : '10px' }}>
           <div className="gemini-input-wrapper" style={{ flex: 1 }}>
             <input
               type="text" placeholder="Thêm việc..." value={newTask}
@@ -318,10 +336,24 @@ const Home: React.FC = () => {
               style={{ padding: '12px 16px' }}
             />
           </div>
+          <button
+            onClick={() => setShowScheduleCalendar(true)}
+            title="Đặt việc cho một ngày khác"
+            style={{ width: '45px', height: '45px', padding: 0, borderRadius: '12px', background: scheduleDate ? 'var(--gemini-grad)' : 'rgba(255,255,255,0.06)', border: scheduleDate ? 'none' : '1px solid var(--border-glass)', color: scheduleDate ? 'white' : 'var(--text-main)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          >
+            <CalendarClock size={20} />
+          </button>
           <button onClick={handleAddTask} className="btn-primary" style={{ width: '45px', height: '45px', padding: 0, borderRadius: '12px' }}>
             <Plus size={22} />
           </button>
         </div>
+        {scheduleDate && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', fontSize: '12px', color: 'var(--primary)' }}>
+            <CalendarClock size={14} />
+            <span>Việc mới sẽ đặt cho ngày {format(scheduleDate, 'dd/MM/yyyy')}</span>
+            <button onClick={() => setScheduleDate(null)} style={{ color: 'var(--text-muted)', display: 'flex' }}><X size={14} /></button>
+          </div>
+        )}
         <div>
           {tasks.length === 0 ? (
             <p style={{ margin: 0, fontSize: '14px', color: 'var(--text-muted)', textAlign: 'center' }}>Quảnh gánh lo đi và vui sống 🍃</p>
@@ -385,6 +417,15 @@ const Home: React.FC = () => {
           message="Việc cần làm này sẽ bị xoá khỏi danh sách của ngày đang xem."
           onConfirm={() => handleDeleteTask(confirmDeleteTask)}
           onCancel={() => setConfirmDeleteTask(null)}
+        />
+      )}
+
+      {showScheduleCalendar && (
+        <CustomCalendar
+          selectedDate={scheduleDate || new Date()}
+          allowFuture
+          onDateSelect={(date) => { setScheduleDate(date); setShowScheduleCalendar(false); }}
+          onClose={() => setShowScheduleCalendar(false)}
         />
       )}
 
