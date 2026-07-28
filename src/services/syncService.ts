@@ -1,5 +1,6 @@
 import { createClient, type SupabaseClient, type User } from '@supabase/supabase-js';
 import { db } from '../utils/db';
+import type { Photo } from '../utils/db';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string | undefined;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
@@ -11,6 +12,8 @@ export const supabase: SupabaseClient | null = isCloudConfigured
   : null;
 
 const TABLE = 'journal_backups';
+const PHOTO_BUCKET = 'photos';
+const STORAGE_URL_PREFIX = 'supabase-storage:';
 const AUTO_SYNC_DELAY_MS = 4000;
 
 export type SyncStatus = 'idle' | 'syncing' | 'synced' | 'error';
@@ -115,14 +118,116 @@ async function getSessionUser(): Promise<User | null> {
   return data.session?.user ?? null;
 }
 
-async function gatherLocalData() {
+function dataUrlToBytes(dataUrl: string): { bytes: Uint8Array; contentType: string } | null {
+  const match = /^data:([^;]+);base64,(.*)$/.exec(dataUrl);
+  if (!match) return null;
+  const binaryString = atob(match[2]);
+  const bytes = new Uint8Array(binaryString.length);
+  for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
+  return { bytes, contentType: match[1] };
+}
+
+function blobToDataUrl(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(blob);
+  });
+}
+
+function photoStoragePath(userId: string, dateKey: string, index: number, time: string): string {
+  const safeTime = (time || '').replace(/[^a-zA-Z0-9]/g, '-');
+  return `${userId}/${dateKey}_${index}_${safeTime}`;
+}
+
+// Tải ảnh (nếu chưa từng tải) lên Supabase Storage, trả về bản cho máy (giữ
+// nguyên base64 để xem offline) và bản cho đám mây (chỉ chứa đường dẫn Storage,
+// không nhúng base64) — tách riêng để mỗi lần đồng bộ không phải gửi lại toàn
+// bộ ảnh, vốn dễ vượt giới hạn thời gian ghi của Postgres khi dữ liệu lớn.
+async function preparePhotosForPush(
+  userId: string,
+  dateKey: string,
+  photos: Photo[]
+): Promise<{ localPhotos: Photo[]; cloudPhotos: Photo[]; changed: boolean }> {
+  if (!supabase || photos.length === 0) {
+    return { localPhotos: photos, cloudPhotos: photos, changed: false };
+  }
+
+  let changed = false;
+  const localPhotos: Photo[] = [];
+  const cloudPhotos: Photo[] = [];
+
+  for (let i = 0; i < photos.length; i++) {
+    const photo = photos[i];
+
+    if (photo.synced && photo.storagePath) {
+      localPhotos.push(photo);
+      cloudPhotos.push({ ...photo, url: STORAGE_URL_PREFIX + photo.storagePath });
+      continue;
+    }
+
+    const parsed = dataUrlToBytes(photo.url);
+    if (!parsed) {
+      // Không phải data URL base64 cục bộ (trường hợp hiếm) — gửi thẳng, không upload riêng.
+      localPhotos.push(photo);
+      cloudPhotos.push(photo);
+      continue;
+    }
+
+    const path = photoStoragePath(userId, dateKey, i, photo.time);
+    const { error } = await supabase.storage.from(PHOTO_BUCKET).upload(path, parsed.bytes, {
+      contentType: parsed.contentType,
+      upsert: true,
+    });
+    if (error) throw error;
+
+    changed = true;
+    const updated: Photo = { ...photo, synced: true, storagePath: path };
+    localPhotos.push(updated);
+    cloudPhotos.push({ ...updated, url: STORAGE_URL_PREFIX + path });
+  }
+
+  return { localPhotos, cloudPhotos, changed };
+}
+
+async function resolvePhotosForPull(photos: Photo[]): Promise<Photo[]> {
+  if (!supabase || !photos || photos.length === 0) return photos || [];
+
+  const resolved: Photo[] = [];
+  for (const photo of photos) {
+    if (typeof photo?.url === 'string' && photo.url.startsWith(STORAGE_URL_PREFIX)) {
+      const path = photo.url.slice(STORAGE_URL_PREFIX.length);
+      const { data, error } = await supabase.storage.from(PHOTO_BUCKET).download(path);
+      if (error) throw error;
+      const dataUrl = await blobToDataUrl(data);
+      resolved.push({ ...photo, url: dataUrl, storagePath: path, synced: true });
+    } else {
+      resolved.push(photo);
+    }
+  }
+  return resolved;
+}
+
+async function gatherPushPayload(userId: string) {
   const [memories, transactions, goals, settings] = await Promise.all([
     db.memories.toArray(),
     db.transactions.toArray(),
     db.goals.toArray(),
     db.settings.toArray(),
   ]);
-  return { memories, transactions, goals, settings };
+
+  const cloudMemories = [];
+  for (const mem of memories) {
+    const { localPhotos, cloudPhotos, changed } = await preparePhotosForPush(userId, mem.dateKey, mem.photos || []);
+    if (changed) {
+      // Đánh dấu ảnh đã tải lên ngay trên máy, để lần đồng bộ sau không tải lại.
+      await db.memories.update(mem.dateKey, { photos: localPhotos });
+    }
+    cloudMemories.push({ ...mem, photos: cloudPhotos });
+  }
+
+  return { memories: cloudMemories, transactions, goals, settings };
 }
 
 export async function pushBackup(knownUser?: User | null): Promise<boolean> {
@@ -132,7 +237,7 @@ export async function pushBackup(knownUser?: User | null): Promise<boolean> {
 
   setStatus('syncing');
   try {
-    const data = await gatherLocalData();
+    const data = await gatherPushPayload(user.id);
     const { error } = await supabase.from(TABLE).upsert({
       user_id: user.id,
       data,
@@ -169,8 +274,14 @@ export async function pullBackup(knownUser?: User | null): Promise<boolean> {
     const backup = (row as { data: Record<string, any[]> }).data || {};
     const { memories = [], transactions = [], goals = [], settings = [] } = backup;
 
+    const resolvedMemories: any[] = [];
+    for (const mem of memories) {
+      const photos = await resolvePhotosForPull(mem.photos || []);
+      resolvedMemories.push({ ...mem, photos });
+    }
+
     await db.transaction('rw', db.memories, db.transactions, db.goals, db.settings, async () => {
-      if (memories.length) await db.memories.bulkPut(memories);
+      if (resolvedMemories.length) await db.memories.bulkPut(resolvedMemories);
       if (transactions.length) await db.transactions.bulkPut(transactions);
       if (goals.length) await db.goals.bulkPut(goals);
       if (settings.length) await db.settings.bulkPut(settings);
