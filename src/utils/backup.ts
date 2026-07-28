@@ -80,7 +80,7 @@ export const exportDexieBackup = async (): Promise<boolean> => {
     return true;
   } catch (err) {
     console.error('Lỗi khi sao lưu dữ liệu:', err);
-    return false;
+    throw err; // để nơi gọi hiện đúng lý do thất bại thay vì một câu chung
   }
 };
 

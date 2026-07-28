@@ -144,7 +144,7 @@ export async function pushBackup(knownUser?: User | null): Promise<boolean> {
   } catch (err) {
     console.error('Lỗi đồng bộ lên đám mây:', err);
     setStatus('error');
-    return false;
+    throw err; // để nơi gọi hiện đúng lý do thất bại thay vì một câu chung
   }
 }
 
@@ -181,7 +181,7 @@ export async function pullBackup(knownUser?: User | null): Promise<boolean> {
   } catch (err) {
     console.error('Lỗi khôi phục từ đám mây:', err);
     setStatus('error');
-    return false;
+    throw err; // để nơi gọi hiện đúng lý do thất bại thay vì một câu chung
   }
 }
 
@@ -190,6 +190,6 @@ export function scheduleAutoSync(delayMs: number = AUTO_SYNC_DELAY_MS): void {
   if (!supabase) return;
   if (syncTimer) clearTimeout(syncTimer);
   syncTimer = setTimeout(() => {
-    pushBackup();
+    pushBackup().catch(() => {}); // lỗi ở đây đã được ghi lại qua setStatus('error'); chạy ngầm nên không cần báo thêm
   }, delayMs);
 }

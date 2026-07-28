@@ -63,6 +63,8 @@ const Expenses: React.FC = () => {
   const budgetModalT = useClosingTransition(showBudgetModal);
   const savingsModalT = useClosingTransition(showSavingsModal);
 
+  const [localBackupBusy, setLocalBackupBusy] = useState(false);
+  const [localBackupMessage, setLocalBackupMessage] = useState<{ text: string; kind: 'success' | 'error' } | null>(null);
   const [cloudUser, setCloudUser] = useState<User | null>(null);
   const [cloudEmail, setCloudEmail] = useState('');
   const [cloudPassword, setCloudPassword] = useState('');
@@ -195,11 +197,15 @@ const Expenses: React.FC = () => {
   };
 
   const handleBackup = async () => {
-    const success = await exportDexieBackup();
-    if (success) {
-      alert('Đã lưu file sao lưu vào máy! Bạn có thể chia sẻ file này lên Drive/Zalo/Gmail... để khôi phục trên máy khác.');
-    } else {
-      alert('Sao lưu thất bại, thử lại sau.');
+    setLocalBackupBusy(true);
+    setLocalBackupMessage(null);
+    try {
+      await exportDexieBackup();
+      setLocalBackupMessage({ text: 'Đã lưu file sao lưu vào máy! Bạn có thể chia sẻ file này lên Drive/Zalo/Gmail... để khôi phục trên máy khác.', kind: 'success' });
+    } catch (err: any) {
+      setLocalBackupMessage({ text: err?.message || 'Sao lưu thất bại, thử lại sau.', kind: 'error' });
+    } finally {
+      setLocalBackupBusy(false);
     }
   };
 
@@ -261,6 +267,8 @@ const Expenses: React.FC = () => {
         setCloudSyncMessage({ text: 'Đã tự động khôi phục dữ liệu từ đám mây!', kind: 'success' });
         loadData();
       }
+    } catch (err: any) {
+      setCloudSyncMessage({ text: err?.message || 'Có lỗi xảy ra khi tự động khôi phục.', kind: 'error' });
     } finally {
       setCloudSyncing(false);
     }
@@ -611,20 +619,25 @@ const Expenses: React.FC = () => {
               <h4 style={{ margin: '0 0 15px 0', color: 'var(--text-main)' }}>Dữ liệu ứng dụng</h4>
               <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '15px' }}>Vì ứng dụng chạy offline, bạn nên thường xuyên sao lưu dữ liệu về máy để tránh mất mát khi đổi điện thoại/trình duyệt.</p>
               
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <button onClick={handleBackup} className="btn-primary" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '12px', borderRadius: '10px', background: 'rgba(255,255,255,0.1)', color: 'var(--primary)', border: '1px solid var(--border-glass)' }}>
-                  <Download size={18} /> Tải Sao Lưu
+              <div style={{ display: 'flex', gap: '10px', marginBottom: localBackupMessage ? '10px' : 0 }}>
+                <button disabled={localBackupBusy} onClick={handleBackup} className="btn-primary" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '12px', borderRadius: '10px', background: 'rgba(255,255,255,0.1)', color: 'var(--primary)', border: '1px solid var(--border-glass)', opacity: localBackupBusy ? 0.6 : 1 }}>
+                  <Download size={18} /> {localBackupBusy ? 'Đang lưu...' : 'Tải Sao Lưu'}
                 </button>
-                <input 
-                  type="file" accept=".json" 
-                  ref={restoreFileRef} 
-                  onChange={handleRestore} 
-                  style={{ display: 'none' }} 
+                <input
+                  type="file" accept=".json"
+                  ref={restoreFileRef}
+                  onChange={handleRestore}
+                  style={{ display: 'none' }}
                 />
                 <button onClick={() => restoreFileRef.current?.click()} className="btn-primary" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '12px', borderRadius: '10px' }}>
                   <Upload size={18} /> Khôi Phục
                 </button>
               </div>
+              {localBackupMessage && (
+                <p style={{ fontSize: '12px', margin: 0, color: localBackupMessage.kind === 'success' ? 'var(--success)' : '#ff6b6b' }}>
+                  {localBackupMessage.text}
+                </p>
+              )}
             </div>
 
             <div className="card glass-panel" style={{ padding: '20px', borderRadius: '16px', marginBottom: '30px' }}>
