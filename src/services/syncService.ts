@@ -125,9 +125,9 @@ async function gatherLocalData() {
   return { memories, transactions, goals, settings };
 }
 
-export async function pushBackup(): Promise<boolean> {
+export async function pushBackup(knownUser?: User | null): Promise<boolean> {
   if (!supabase) return false;
-  const user = await getSessionUser();
+  const user = knownUser ?? await getSessionUser();
   if (!user) return false;
 
   setStatus('syncing');
@@ -148,9 +148,9 @@ export async function pushBackup(): Promise<boolean> {
   }
 }
 
-export async function pullBackup(): Promise<boolean> {
+export async function pullBackup(knownUser?: User | null): Promise<boolean> {
   if (!supabase) return false;
-  const user = await getSessionUser();
+  const user = knownUser ?? await getSessionUser();
   if (!user) return false;
 
   setStatus('syncing');

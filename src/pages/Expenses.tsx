@@ -221,20 +221,21 @@ const Expenses: React.FC = () => {
     setCloudMode(mode);
     setCloudError('');
     setCloudLoading(true);
+    let signedInUser: User | null = null;
     try {
       if (mode === 'signup') {
         const { hasSession } = await signUp(cloudEmail.trim(), cloudPassword);
         if (hasSession) {
-          const user = await getCurrentUser();
-          setCloudUser(user);
+          signedInUser = await getCurrentUser();
+          setCloudUser(signedInUser);
           setCloudPassword('');
         } else {
           alert('Đã đăng ký! Kiểm tra email để xác nhận, sau đó đăng nhập lại.');
         }
       } else {
         await signIn(cloudEmail.trim(), cloudPassword);
-        const user = await getCurrentUser();
-        setCloudUser(user);
+        signedInUser = await getCurrentUser();
+        setCloudUser(signedInUser);
         setCloudPassword('');
       }
     } catch (err: any) {
@@ -244,13 +245,18 @@ const Expenses: React.FC = () => {
     }
     setCloudLoading(false);
 
+    if (!signedInUser) return;
+
     // Cài lại app hoặc đăng nhập trên máy mới thì dữ liệu cục bộ luôn trống —
     // tự tải bản sao lưu trên đám mây về ngay lúc đăng nhập, không cần bấm
     // riêng "Khôi Phục Từ Mây" nữa. Merge dữ liệu bằng bulkPut nên vô hại nếu
     // máy đang có sẵn dữ liệu (ví dụ đăng nhập lại trên máy cũ).
+    // Truyền thẳng signedInUser (đã xác thực qua getCurrentUser() ở trên) thay vì
+    // để pullBackup tự tra lại session — tránh trường hợp tra lại quá sớm, ngay
+    // sau khi vừa đăng nhập, chưa kịp thấy phiên mới trên WebView.
     setCloudSyncing(true);
     try {
-      const restored = await pullBackup();
+      const restored = await pullBackup(signedInUser);
       if (restored) {
         setCloudSyncMessage({ text: 'Đã tự động khôi phục dữ liệu từ đám mây!', kind: 'success' });
         loadData();
