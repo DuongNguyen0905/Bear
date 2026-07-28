@@ -239,8 +239,24 @@ const Expenses: React.FC = () => {
       }
     } catch (err: any) {
       setCloudError(err?.message || 'Có lỗi xảy ra, thử lại sau.');
-    } finally {
       setCloudLoading(false);
+      return;
+    }
+    setCloudLoading(false);
+
+    // Cài lại app hoặc đăng nhập trên máy mới thì dữ liệu cục bộ luôn trống —
+    // tự tải bản sao lưu trên đám mây về ngay lúc đăng nhập, không cần bấm
+    // riêng "Khôi Phục Từ Mây" nữa. Merge dữ liệu bằng bulkPut nên vô hại nếu
+    // máy đang có sẵn dữ liệu (ví dụ đăng nhập lại trên máy cũ).
+    setCloudSyncing(true);
+    try {
+      const restored = await pullBackup();
+      if (restored) {
+        setCloudSyncMessage({ text: 'Đã tự động khôi phục dữ liệu từ đám mây!', kind: 'success' });
+        loadData();
+      }
+    } finally {
+      setCloudSyncing(false);
     }
   };
 
