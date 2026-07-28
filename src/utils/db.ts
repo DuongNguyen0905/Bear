@@ -1,14 +1,9 @@
 import Dexie, { type EntityTable } from 'dexie';
 
 export interface Photo {
-  url: string; // luôn là data URL base64 cục bộ, để xem được cả khi offline
+  url: string;
   time: string;
   caption?: string;
-  // Bookkeeping riêng cho đồng bộ đám mây: ảnh đã có trên Supabase Storage rồi
-  // thì lần đồng bộ sau không cần tải lại, tránh gửi lại hàng chục MB mỗi lần
-  // sửa một dòng nhật ký không liên quan (xem syncService.ts).
-  synced?: boolean;
-  storagePath?: string;
 }
 
 export interface Emotion {

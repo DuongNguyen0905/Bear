@@ -6,22 +6,6 @@ import { format } from 'date-fns';
 import { PieChart, Pie, Tooltip, ResponsiveContainer, Cell, Legend } from 'recharts';
 import Tesseract from 'tesseract.js';
 import { exportDexieBackup, importDexieBackup } from '../utils/backup';
-import {
-  isCloudConfigured,
-  getCurrentUser,
-  signIn,
-  signUp,
-  signOut,
-  pushBackup,
-  pullBackup,
-  getSyncStatus,
-  onSyncStatusChange,
-  requestPasswordReset,
-  updatePassword,
-  onPasswordRecovery,
-  type SyncStatus,
-} from '../services/syncService';
-import type { User } from '@supabase/supabase-js';
 import { useAndroidBack } from '../hooks/useAndroidBack';
 import { useClosingTransition } from '../hooks/useClosingTransition';
 import { formatThousands, stripThousands } from '../utils/formatNumber';
@@ -65,40 +49,12 @@ const Expenses: React.FC = () => {
 
   const [localBackupBusy, setLocalBackupBusy] = useState(false);
   const [localBackupMessage, setLocalBackupMessage] = useState<{ text: string; kind: 'success' | 'error' } | null>(null);
-  const [cloudUser, setCloudUser] = useState<User | null>(null);
-  const [cloudEmail, setCloudEmail] = useState('');
-  const [cloudPassword, setCloudPassword] = useState('');
-  const [cloudMode, setCloudMode] = useState<'signin' | 'signup'>('signin');
-  const [cloudLoading, setCloudLoading] = useState(false);
-  const [cloudError, setCloudError] = useState('');
-  const [syncStatus, setSyncStatus] = useState<SyncStatus>(getSyncStatus());
-  const [showForgotPassword, setShowForgotPassword] = useState(false);
-  const [resetSent, setResetSent] = useState(false);
-  const [passwordRecoveryMode, setPasswordRecoveryMode] = useState(false);
-  const [newPassword, setNewPassword] = useState('');
-  const [cloudSyncing, setCloudSyncing] = useState(false);
-  const [cloudSyncMessage, setCloudSyncMessage] = useState<{ text: string; kind: 'success' | 'error' } | null>(null);
-  const [confirmingPull, setConfirmingPull] = useState(false);
+  const [restoreBusy, setRestoreBusy] = useState(false);
+  const [restoreMessage, setRestoreMessage] = useState<{ text: string; kind: 'success' | 'error' } | null>(null);
 
   useEffect(() => {
     loadData();
   }, [dateKey]);
-
-  useEffect(() => {
-    if (!isCloudConfigured) return;
-    getCurrentUser().then(setCloudUser);
-    const unsubscribe = onSyncStatusChange(setSyncStatus);
-    // Người dùng bấm link đặt lại mật khẩu trong email sẽ mở lại app ở đây với
-    // một session khôi phục — tự mở khung Cài đặt và hiện form đặt mật khẩu mới.
-    const unsubscribeRecovery = onPasswordRecovery(() => {
-      setPasswordRecoveryMode(true);
-      setShowSettings(true);
-    });
-    return () => {
-      unsubscribe();
-      unsubscribeRecovery();
-    };
-  }, []);
 
   useEffect(() => {
     setCategory(activeTab === 'expense' ? expenseCategories[0] : incomeCategories[0]);
@@ -212,139 +168,20 @@ const Expenses: React.FC = () => {
   const handleRestore = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    
-    if (window.confirm('Cảnh báo: Nhập dữ liệu mới sẽ thay thế/gộp vào dữ liệu hiện tại. Bạn có chắc chắn muốn tiếp tục?')) {
-      const success = await importDexieBackup(file);
-      if (success) {
-        alert('Khôi phục dữ liệu thành công!');
-        loadData();
-      }
-    }
-    if (restoreFileRef.current) restoreFileRef.current.value = '';
-  };
 
-  const handleCloudAuth = async (mode: 'signin' | 'signup') => {
-    setCloudMode(mode);
-    setCloudError('');
-    setCloudLoading(true);
-    let signedInUser: User | null = null;
+    setRestoreBusy(true);
+    setRestoreMessage(null);
     try {
-      if (mode === 'signup') {
-        const { hasSession } = await signUp(cloudEmail.trim(), cloudPassword);
-        if (hasSession) {
-          signedInUser = await getCurrentUser();
-          setCloudUser(signedInUser);
-          setCloudPassword('');
-        } else {
-          alert('Đã đăng ký! Kiểm tra email để xác nhận, sau đó đăng nhập lại.');
-        }
-      } else {
-        await signIn(cloudEmail.trim(), cloudPassword);
-        signedInUser = await getCurrentUser();
-        setCloudUser(signedInUser);
-        setCloudPassword('');
-      }
+      // Khôi phục luôn GỘP vào dữ liệu hiện có trên máy (không ghi đè) — xem
+      // logic gộp trong importDexieBackup — nên không cần hỏi xác nhận nữa.
+      await importDexieBackup(file);
+      setRestoreMessage({ text: 'Đã khôi phục và gộp dữ liệu thành công!', kind: 'success' });
+      loadData();
     } catch (err: any) {
-      setCloudError(err?.message || 'Có lỗi xảy ra, thử lại sau.');
-      setCloudLoading(false);
-      return;
-    }
-    setCloudLoading(false);
-
-    if (!signedInUser) return;
-
-    // Cài lại app hoặc đăng nhập trên máy mới thì dữ liệu cục bộ luôn trống —
-    // tự tải bản sao lưu trên đám mây về ngay lúc đăng nhập, không cần bấm
-    // riêng "Khôi Phục Từ Mây" nữa. Merge dữ liệu bằng bulkPut nên vô hại nếu
-    // máy đang có sẵn dữ liệu (ví dụ đăng nhập lại trên máy cũ).
-    // Truyền thẳng signedInUser (đã xác thực qua getCurrentUser() ở trên) thay vì
-    // để pullBackup tự tra lại session — tránh trường hợp tra lại quá sớm, ngay
-    // sau khi vừa đăng nhập, chưa kịp thấy phiên mới trên WebView.
-    setCloudSyncing(true);
-    try {
-      const restored = await pullBackup(signedInUser);
-      if (restored) {
-        setCloudSyncMessage({ text: 'Đã tự động khôi phục dữ liệu từ đám mây!', kind: 'success' });
-        loadData();
-      }
-    } catch (err: any) {
-      setCloudSyncMessage({ text: err?.message || 'Có lỗi xảy ra khi tự động khôi phục.', kind: 'error' });
+      setRestoreMessage({ text: err?.message || 'Khôi phục thất bại, thử lại sau.', kind: 'error' });
     } finally {
-      setCloudSyncing(false);
-    }
-  };
-
-  const handleCloudSignOut = async () => {
-    await signOut();
-    setCloudUser(null);
-  };
-
-  const handleRequestPasswordReset = async () => {
-    if (!cloudEmail.trim()) return;
-    setCloudLoading(true);
-    setCloudError('');
-    try {
-      await requestPasswordReset(cloudEmail.trim());
-      setResetSent(true);
-    } catch (err: any) {
-      setCloudError(err?.message || 'Có lỗi xảy ra, thử lại sau.');
-    } finally {
-      setCloudLoading(false);
-    }
-  };
-
-  const handleSetNewPassword = async () => {
-    if (newPassword.length < 6) {
-      setCloudError('Mật khẩu mới cần ít nhất 6 ký tự.');
-      return;
-    }
-    setCloudLoading(true);
-    setCloudError('');
-    try {
-      await updatePassword(newPassword);
-      setPasswordRecoveryMode(false);
-      setNewPassword('');
-      const user = await getCurrentUser();
-      setCloudUser(user);
-      alert('Đã đặt mật khẩu mới! Từ giờ đăng nhập bằng mật khẩu này.');
-    } catch (err: any) {
-      setCloudError(err?.message || 'Có lỗi xảy ra, thử lại sau.');
-    } finally {
-      setCloudLoading(false);
-    }
-  };
-
-  const handleCloudPush = async () => {
-    setCloudSyncing(true);
-    setCloudSyncMessage(null);
-    try {
-      const ok = await pushBackup();
-      setCloudSyncMessage(ok
-        ? { text: 'Đã đồng bộ dữ liệu lên đám mây!', kind: 'success' }
-        : { text: 'Đồng bộ thất bại, kiểm tra kết nối mạng.', kind: 'error' });
-    } catch (err: any) {
-      setCloudSyncMessage({ text: err?.message || 'Có lỗi xảy ra khi đồng bộ.', kind: 'error' });
-    } finally {
-      setCloudSyncing(false);
-    }
-  };
-
-  const handleCloudPull = async () => {
-    setConfirmingPull(false);
-    setCloudSyncing(true);
-    setCloudSyncMessage(null);
-    try {
-      const ok = await pullBackup();
-      if (ok) {
-        setCloudSyncMessage({ text: 'Đã khôi phục dữ liệu từ đám mây!', kind: 'success' });
-        loadData();
-      } else {
-        setCloudSyncMessage({ text: 'Không tìm thấy bản sao lưu trên đám mây hoặc khôi phục thất bại.', kind: 'error' });
-      }
-    } catch (err: any) {
-      setCloudSyncMessage({ text: err?.message || 'Có lỗi xảy ra khi khôi phục.', kind: 'error' });
-    } finally {
-      setCloudSyncing(false);
+      setRestoreBusy(false);
+      if (restoreFileRef.current) restoreFileRef.current.value = '';
     }
   };
 
@@ -619,7 +456,7 @@ const Expenses: React.FC = () => {
               <h4 style={{ margin: '0 0 15px 0', color: 'var(--text-main)' }}>Dữ liệu ứng dụng</h4>
               <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '15px' }}>Vì ứng dụng chạy offline, bạn nên thường xuyên sao lưu dữ liệu về máy để tránh mất mát khi đổi điện thoại/trình duyệt.</p>
               
-              <div style={{ display: 'flex', gap: '10px', marginBottom: localBackupMessage ? '10px' : 0 }}>
+              <div style={{ display: 'flex', gap: '10px', marginBottom: (localBackupMessage || restoreMessage) ? '10px' : 0 }}>
                 <button disabled={localBackupBusy} onClick={handleBackup} className="btn-primary" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '12px', borderRadius: '10px', background: 'rgba(255,255,255,0.1)', color: 'var(--primary)', border: '1px solid var(--border-glass)', opacity: localBackupBusy ? 0.6 : 1 }}>
                   <Download size={18} /> {localBackupBusy ? 'Đang lưu...' : 'Tải Sao Lưu'}
                 </button>
@@ -629,8 +466,8 @@ const Expenses: React.FC = () => {
                   onChange={handleRestore}
                   style={{ display: 'none' }}
                 />
-                <button onClick={() => restoreFileRef.current?.click()} className="btn-primary" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '12px', borderRadius: '10px' }}>
-                  <Upload size={18} /> Khôi Phục
+                <button disabled={restoreBusy} onClick={() => restoreFileRef.current?.click()} className="btn-primary" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '12px', borderRadius: '10px', opacity: restoreBusy ? 0.6 : 1 }}>
+                  <Upload size={18} /> {restoreBusy ? 'Đang khôi phục...' : 'Khôi Phục'}
                 </button>
               </div>
               {localBackupMessage && (
@@ -638,151 +475,10 @@ const Expenses: React.FC = () => {
                   {localBackupMessage.text}
                 </p>
               )}
-            </div>
-
-            <div className="card glass-panel" style={{ padding: '20px', borderRadius: '16px', marginBottom: '30px' }}>
-              <h4 style={{ margin: '0 0 15px 0', color: 'var(--text-main)' }}>Đồng bộ đám mây</h4>
-
-              {!isCloudConfigured ? (
-                <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                  Chưa cấu hình đám mây. Thêm VITE_SUPABASE_URL và VITE_SUPABASE_ANON_KEY vào file .env rồi build lại app.
+              {restoreMessage && (
+                <p style={{ fontSize: '12px', margin: 0, color: restoreMessage.kind === 'success' ? 'var(--success)' : '#ff6b6b' }}>
+                  {restoreMessage.text}
                 </p>
-              ) : passwordRecoveryMode ? (
-                <>
-                  <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '10px' }}>
-                    Nhập mật khẩu mới cho tài khoản của bạn.
-                  </p>
-                  <div className="gemini-input-wrapper" style={{ marginBottom: '10px' }}>
-                    <input
-                      type="password" placeholder="Mật khẩu mới" value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      style={{ width: '100%', padding: '12px', borderRadius: '10px', border: 'none', backgroundColor: 'transparent', color: 'white' }}
-                    />
-                  </div>
-                  {cloudError && <p style={{ fontSize: '12px', color: '#ff6b6b', marginBottom: '10px' }}>{cloudError}</p>}
-                  <button
-                    disabled={cloudLoading || !newPassword}
-                    onClick={handleSetNewPassword}
-                    className="btn-primary" style={{ width: '100%', padding: '12px', borderRadius: '10px' }}
-                  >
-                    Đặt mật khẩu mới
-                  </button>
-                </>
-              ) : cloudUser ? (
-                <>
-                  <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '10px' }}>
-                    Đã đăng nhập: {cloudUser.email}. Dữ liệu tự động đồng bộ mỗi khi bạn thay đổi.
-                    {syncStatus === 'syncing' && ' Đang đồng bộ...'}
-                    {syncStatus === 'synced' && ' Đã đồng bộ.'}
-                    {syncStatus === 'error' && ' Lỗi đồng bộ lần gần nhất.'}
-                  </p>
-
-                  {confirmingPull ? (
-                    <>
-                      <p style={{ fontSize: '12px', color: 'var(--text-main)', marginBottom: '10px' }}>
-                        Khôi phục từ đám mây sẽ gộp dữ liệu trên máy chủ vào dữ liệu hiện tại trên máy. Tiếp tục?
-                      </p>
-                      <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
-                        <button onClick={() => setConfirmingPull(false)} style={{ flex: 1, padding: '12px', borderRadius: '10px', background: 'rgba(255,255,255,0.06)', border: '1px solid var(--border-glass)', color: 'var(--text-main)' }}>
-                          Huỷ
-                        </button>
-                        <button onClick={handleCloudPull} className="btn-primary" style={{ flex: 1, padding: '12px', borderRadius: '10px' }}>
-                          Xác Nhận
-                        </button>
-                      </div>
-                    </>
-                  ) : (
-                    <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
-                      <button
-                        disabled={cloudSyncing}
-                        onClick={handleCloudPush}
-                        className="btn-primary" style={{ flex: 1, padding: '12px', borderRadius: '10px', background: 'rgba(255,255,255,0.1)', color: 'var(--primary)', border: '1px solid var(--border-glass)', opacity: cloudSyncing ? 0.6 : 1 }}
-                      >
-                        {cloudSyncing ? 'Đang xử lý...' : 'Đồng Bộ Ngay'}
-                      </button>
-                      <button
-                        disabled={cloudSyncing}
-                        onClick={() => setConfirmingPull(true)}
-                        className="btn-primary" style={{ flex: 1, padding: '12px', borderRadius: '10px', opacity: cloudSyncing ? 0.6 : 1 }}
-                      >
-                        {cloudSyncing ? 'Đang xử lý...' : 'Khôi Phục Từ Mây'}
-                      </button>
-                    </div>
-                  )}
-
-                  {cloudSyncMessage && (
-                    <p style={{ fontSize: '12px', marginBottom: '10px', color: cloudSyncMessage.kind === 'success' ? 'var(--success)' : '#ff6b6b' }}>
-                      {cloudSyncMessage.text}
-                    </p>
-                  )}
-
-                  <button onClick={handleCloudSignOut} style={{ width: '100%', padding: '10px', background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '12px' }}>
-                    Đăng xuất
-                  </button>
-                </>
-              ) : (
-                <>
-                  <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '10px' }}>
-                    Đăng nhập để tự động sao lưu dữ liệu lên đám mây và khôi phục trên máy khác.
-                  </p>
-                  <div className="gemini-input-wrapper" style={{ marginBottom: '10px' }}>
-                    <input
-                      type="email" placeholder="Email" value={cloudEmail}
-                      onChange={(e) => setCloudEmail(e.target.value)}
-                      style={{ width: '100%', padding: '12px', borderRadius: '10px', border: 'none', backgroundColor: 'transparent', color: 'white' }}
-                    />
-                  </div>
-                  <div className="gemini-input-wrapper" style={{ marginBottom: '10px' }}>
-                    <input
-                      type="password" placeholder="Mật khẩu" value={cloudPassword}
-                      onChange={(e) => setCloudPassword(e.target.value)}
-                      style={{ width: '100%', padding: '12px', borderRadius: '10px', border: 'none', backgroundColor: 'transparent', color: 'white' }}
-                    />
-                  </div>
-                  {cloudError && <p style={{ fontSize: '12px', color: '#ff6b6b', marginBottom: '10px' }}>{cloudError}</p>}
-                  <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
-                    <button
-                      disabled={cloudLoading || !cloudEmail || !cloudPassword}
-                      onClick={() => handleCloudAuth('signin')}
-                      className="btn-primary" style={{ flex: 1, padding: '12px', borderRadius: '10px' }}
-                    >
-                      Đăng Nhập
-                    </button>
-                    <button
-                      disabled={cloudLoading || !cloudEmail || !cloudPassword}
-                      onClick={() => handleCloudAuth('signup')}
-                      className="btn-primary" style={{ flex: 1, padding: '12px', borderRadius: '10px', background: 'rgba(255,255,255,0.1)', color: 'var(--primary)', border: '1px solid var(--border-glass)' }}
-                    >
-                      Đăng Ký
-                    </button>
-                  </div>
-
-                  {!showForgotPassword ? (
-                    <button
-                      onClick={() => { setShowForgotPassword(true); setResetSent(false); setCloudError(''); }}
-                      style={{ width: '100%', padding: '6px', background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '12px', textAlign: 'center' }}
-                    >
-                      Quên mật khẩu?
-                    </button>
-                  ) : resetSent ? (
-                    <p style={{ fontSize: '12px', color: 'var(--success)', textAlign: 'center' }}>
-                      Đã gửi email đặt lại mật khẩu tới {cloudEmail}. Mở email đó và bấm vào link để đặt mật khẩu mới.
-                    </p>
-                  ) : (
-                    <div style={{ borderTop: '1px solid var(--border-glass)', paddingTop: '10px', marginTop: '4px' }}>
-                      <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '8px' }}>
-                        Nhập email ở trên rồi bấm gửi, hệ thống sẽ gửi link đặt lại mật khẩu.
-                      </p>
-                      <button
-                        disabled={cloudLoading || !cloudEmail}
-                        onClick={handleRequestPasswordReset}
-                        className="btn-primary" style={{ width: '100%', padding: '10px', borderRadius: '10px', background: 'rgba(255,255,255,0.1)', color: 'var(--primary)', border: '1px solid var(--border-glass)' }}
-                      >
-                        Gửi email đặt lại mật khẩu
-                      </button>
-                    </div>
-                  )}
-                </>
               )}
             </div>
 
