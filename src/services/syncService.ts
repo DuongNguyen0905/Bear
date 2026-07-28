@@ -103,6 +103,18 @@ export async function getCurrentUser(): Promise<User | null> {
   return data.user ?? null;
 }
 
+// getUser() luôn gọi mạng để Supabase xác thực lại token, còn getSession() chỉ đọc
+// phiên đã lưu trong máy (không gọi mạng). Đồng bộ ngầm chạy sau MỖI lần sửa dữ
+// liệu (mỗi từ gõ nhật ký, mỗi lần tick việc...) nên dùng getUser() ở đây từng khiến
+// nhiều yêu cầu làm mới token bắn ra gần như cùng lúc — Supabase phát hiện refresh
+// token bị dùng trùng lặp và tự vô hiệu hoá session (đăng xuất người dùng ngoài ý
+// muốn). Dùng getSession() cho các lượt kiểm tra tần suất cao này để tránh việc đó.
+async function getSessionUser(): Promise<User | null> {
+  if (!supabase) return null;
+  const { data } = await supabase.auth.getSession();
+  return data.session?.user ?? null;
+}
+
 async function gatherLocalData() {
   const [memories, transactions, goals, settings] = await Promise.all([
     db.memories.toArray(),
@@ -115,7 +127,7 @@ async function gatherLocalData() {
 
 export async function pushBackup(): Promise<boolean> {
   if (!supabase) return false;
-  const user = await getCurrentUser();
+  const user = await getSessionUser();
   if (!user) return false;
 
   setStatus('syncing');
@@ -138,7 +150,7 @@ export async function pushBackup(): Promise<boolean> {
 
 export async function pullBackup(): Promise<boolean> {
   if (!supabase) return false;
-  const user = await getCurrentUser();
+  const user = await getSessionUser();
   if (!user) return false;
 
   setStatus('syncing');

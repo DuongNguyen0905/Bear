@@ -74,6 +74,9 @@ const Expenses: React.FC = () => {
   const [resetSent, setResetSent] = useState(false);
   const [passwordRecoveryMode, setPasswordRecoveryMode] = useState(false);
   const [newPassword, setNewPassword] = useState('');
+  const [cloudSyncing, setCloudSyncing] = useState(false);
+  const [cloudSyncMessage, setCloudSyncMessage] = useState<{ text: string; kind: 'success' | 'error' } | null>(null);
+  const [confirmingPull, setConfirmingPull] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -282,18 +285,36 @@ const Expenses: React.FC = () => {
   };
 
   const handleCloudPush = async () => {
-    const ok = await pushBackup();
-    alert(ok ? 'Đã đồng bộ dữ liệu lên đám mây!' : 'Đồng bộ thất bại, kiểm tra kết nối mạng.');
+    setCloudSyncing(true);
+    setCloudSyncMessage(null);
+    try {
+      const ok = await pushBackup();
+      setCloudSyncMessage(ok
+        ? { text: 'Đã đồng bộ dữ liệu lên đám mây!', kind: 'success' }
+        : { text: 'Đồng bộ thất bại, kiểm tra kết nối mạng.', kind: 'error' });
+    } catch (err: any) {
+      setCloudSyncMessage({ text: err?.message || 'Có lỗi xảy ra khi đồng bộ.', kind: 'error' });
+    } finally {
+      setCloudSyncing(false);
+    }
   };
 
   const handleCloudPull = async () => {
-    if (!window.confirm('Khôi phục từ đám mây sẽ gộp dữ liệu trên máy chủ vào dữ liệu hiện tại trên máy. Tiếp tục?')) return;
-    const ok = await pullBackup();
-    if (ok) {
-      alert('Đã khôi phục dữ liệu từ đám mây!');
-      loadData();
-    } else {
-      alert('Không tìm thấy bản sao lưu trên đám mây hoặc khôi phục thất bại.');
+    setConfirmingPull(false);
+    setCloudSyncing(true);
+    setCloudSyncMessage(null);
+    try {
+      const ok = await pullBackup();
+      if (ok) {
+        setCloudSyncMessage({ text: 'Đã khôi phục dữ liệu từ đám mây!', kind: 'success' });
+        loadData();
+      } else {
+        setCloudSyncMessage({ text: 'Không tìm thấy bản sao lưu trên đám mây hoặc khôi phục thất bại.', kind: 'error' });
+      }
+    } catch (err: any) {
+      setCloudSyncMessage({ text: err?.message || 'Có lỗi xảy ra khi khôi phục.', kind: 'error' });
+    } finally {
+      setCloudSyncing(false);
     }
   };
 
@@ -620,14 +641,46 @@ const Expenses: React.FC = () => {
                     {syncStatus === 'synced' && ' Đã đồng bộ.'}
                     {syncStatus === 'error' && ' Lỗi đồng bộ lần gần nhất.'}
                   </p>
-                  <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
-                    <button onClick={handleCloudPush} className="btn-primary" style={{ flex: 1, padding: '12px', borderRadius: '10px', background: 'rgba(255,255,255,0.1)', color: 'var(--primary)', border: '1px solid var(--border-glass)' }}>
-                      Đồng Bộ Ngay
-                    </button>
-                    <button onClick={handleCloudPull} className="btn-primary" style={{ flex: 1, padding: '12px', borderRadius: '10px' }}>
-                      Khôi Phục Từ Mây
-                    </button>
-                  </div>
+
+                  {confirmingPull ? (
+                    <>
+                      <p style={{ fontSize: '12px', color: 'var(--text-main)', marginBottom: '10px' }}>
+                        Khôi phục từ đám mây sẽ gộp dữ liệu trên máy chủ vào dữ liệu hiện tại trên máy. Tiếp tục?
+                      </p>
+                      <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
+                        <button onClick={() => setConfirmingPull(false)} style={{ flex: 1, padding: '12px', borderRadius: '10px', background: 'rgba(255,255,255,0.06)', border: '1px solid var(--border-glass)', color: 'var(--text-main)' }}>
+                          Huỷ
+                        </button>
+                        <button onClick={handleCloudPull} className="btn-primary" style={{ flex: 1, padding: '12px', borderRadius: '10px' }}>
+                          Xác Nhận
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
+                      <button
+                        disabled={cloudSyncing}
+                        onClick={handleCloudPush}
+                        className="btn-primary" style={{ flex: 1, padding: '12px', borderRadius: '10px', background: 'rgba(255,255,255,0.1)', color: 'var(--primary)', border: '1px solid var(--border-glass)', opacity: cloudSyncing ? 0.6 : 1 }}
+                      >
+                        {cloudSyncing ? 'Đang xử lý...' : 'Đồng Bộ Ngay'}
+                      </button>
+                      <button
+                        disabled={cloudSyncing}
+                        onClick={() => setConfirmingPull(true)}
+                        className="btn-primary" style={{ flex: 1, padding: '12px', borderRadius: '10px', opacity: cloudSyncing ? 0.6 : 1 }}
+                      >
+                        {cloudSyncing ? 'Đang xử lý...' : 'Khôi Phục Từ Mây'}
+                      </button>
+                    </div>
+                  )}
+
+                  {cloudSyncMessage && (
+                    <p style={{ fontSize: '12px', marginBottom: '10px', color: cloudSyncMessage.kind === 'success' ? 'var(--success)' : '#ff6b6b' }}>
+                      {cloudSyncMessage.text}
+                    </p>
+                  )}
+
                   <button onClick={handleCloudSignOut} style={{ width: '100%', padding: '10px', background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '12px' }}>
                     Đăng xuất
                   </button>
