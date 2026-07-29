@@ -33,6 +33,19 @@
   --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
   --transition-normal: 300ms cubic-bezier(0.4, 0, 0.2, 1);
   --transition-smooth: 500ms cubic-bezier(0.25, 0.8, 0.25, 1);
+  /* Đường cong "lò xo" hơi nảy quá đích rồi lắng lại — dùng cho các chuyển
+     động cần cảm giác mềm mại, dẻo như kính lỏng thật (mở modal, bấm nút),
+     khác với transition-smooth (không nảy, dùng cho fade/slide đơn giản). */
+  --transition-spring: 550ms cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* Liquid Glass tokens — dùng chung cho mọi mặt kính trong app để đồng bộ
+     một ngôn ngữ thiết kế, thay vì mỗi nơi tự khai blur/màu riêng. */
+  --glass-blur: 22px;
+  --glass-saturate: 180%;
+  --glass-bg: rgba(255, 255, 255, 0.06);
+  --glass-bg-strong: rgba(255, 255, 255, 0.1);
+  --glass-specular: linear-gradient(135deg, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0.08) 35%, rgba(255,255,255,0) 60%);
+  --glass-edge: linear-gradient(180deg, rgba(255,255,255,0.5), rgba(255,255,255,0) 40%, rgba(255,255,255,0) 60%, rgba(255,255,255,0.15));
 }
 
 * {
@@ -117,17 +130,24 @@ body {
   -webkit-overflow-scrolling: touch;
 }
 
-/* Liquid Glass Cards */
+/* Liquid Glass Cards — mặt kính mờ thật: blur cao hơn + saturate để màu sắc
+   phía sau kính trông sống động hơn (đặc trưng của kính mờ thật, không phải
+   chỉ làm nhoè), viền sáng mô phỏng ánh sáng bắt theo cạnh kính, và một lớp
+   phản chiếu (specular) tĩnh ở góc trên-trái như ánh sáng chiếu vào mặt kính
+   cong. Để tĩnh (không animation liên tục) vì trang có thể hiện nhiều thẻ
+   cùng lúc (Nhật ký, Kỷ niệm) — animation trên từng thẻ sẽ dồn lại rất nặng.
+   Các mặt kính "một-lần-một" nổi bật hơn (thanh menu, nút chính) mới có ánh
+   sáng chuyển động thật, xem .liquid-glass và .btn-primary. */
 .card, .glass-panel {
-  background: rgba(25, 25, 35, 0.4);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
   border: 1px solid var(--border-glass);
   border-radius: var(--radius-md);
   padding: 18px;
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-sm), inset 0 1px 0 rgba(255, 255, 255, 0.09);
   margin-bottom: 16px;
-  transition: all var(--transition-smooth);
+  transition: transform var(--transition-spring), box-shadow var(--transition-normal), background var(--transition-normal), border-color var(--transition-normal);
   position: relative;
   overflow: hidden;
 }
@@ -137,15 +157,33 @@ body {
   position: absolute;
   top: 0; left: 0; right: 0; bottom: 0;
   border-radius: inherit;
-  background: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0) 100%);
+  background: var(--glass-specular);
+  opacity: 0.6;
   pointer-events: none;
 }
 
 .card:hover {
   transform: translateY(-3px);
-  box-shadow: var(--shadow-md), var(--shadow-glow);
+  box-shadow: var(--shadow-md), var(--shadow-glow), inset 0 1px 0 rgba(255, 255, 255, 0.12);
   border-color: rgba(155, 114, 203, 0.3);
-  background: rgba(30, 30, 45, 0.5);
+  background: var(--glass-bg-strong);
+  /* Nhấc lên dùng đường cong lò xo cho cảm giác mềm, dẻo — nhưng lúc BẤM
+     (:active, khai báo dưới) phải nhanh/dứt khoát, không được nảy, nên
+     :hover phải tự khai transition riêng, đè lên transition nhanh dùng
+     chung cho mọi nút bấm ở dưới (nhờ độ ưu tiên CSS cao hơn). */
+  transition: transform var(--transition-spring), box-shadow var(--transition-normal), background var(--transition-normal), border-color var(--transition-normal);
+}
+
+/* Mặt kính "chủ lực" — khúc xạ thật qua bộ lọc SVG (feDisplacementMap) chứ
+   không chỉ làm mờ, dùng cho các bề mặt cố định, nổi bật, xuất hiện một lần
+   trên màn hình (thanh tiêu đề modal toàn màn hình...) — KHÔNG dùng cho
+   danh sách lặp lại nhiều lần vì chi phí GPU của filter này cao hơn
+   backdrop-filter thường. backdrop-filter chỉ làm mờ/lệch phần NHÌN XUYÊN
+   QUA lớp kính (nội dung phía sau), không ảnh hưởng đến chữ/icon là con của
+   chính phần tử này — nên áp thẳng lên phần tử, không cần tách lớp riêng. */
+.liquid-glass {
+  backdrop-filter: blur(18px) saturate(var(--glass-saturate)) url(#liquid-glass-distortion);
+  -webkit-backdrop-filter: blur(18px) saturate(var(--glass-saturate));
 }
 
 /* Headings */
@@ -240,7 +278,8 @@ input, textarea, select {
   font-size: 16px;
   outline: none;
   transition: all var(--transition-normal);
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(12px) saturate(var(--glass-saturate));
+  -webkit-backdrop-filter: blur(12px) saturate(var(--glass-saturate));
 }
 
 input:focus, textarea:focus, select:focus {

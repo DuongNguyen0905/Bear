@@ -431,7 +431,7 @@ const Home: React.FC = () => {
 
       {hallModalT.shouldRender && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'var(--bg-main)', zIndex: 5000, display: 'flex', flexDirection: 'column', overflowY: 'auto', transform: hallModalT.active ? 'translateX(0)' : 'translateX(100%)', transition: 'transform 250ms cubic-bezier(0.32, 0.72, 0, 1)' }}>
-          <div style={{ padding: '20px', backgroundColor: 'rgba(15, 15, 20, 0.8)', backdropFilter: 'blur(20px)', display: 'flex', alignItems: 'center', position: 'sticky', top: 0, zIndex: 10 }}>
+          <div className="liquid-glass" style={{ padding: '20px', backgroundColor: 'rgba(15, 15, 20, 0.8)', display: 'flex', alignItems: 'center', position: 'sticky', top: 0, zIndex: 10 }}>
             <button onClick={() => setShowHallModal(false)} style={{ marginRight: '15px', color: 'white', background: 'none', border: 'none' }}><ChevronLeft size={24} /></button>
             <h3 style={{ margin: 0, flex: 1, textAlign: 'center', color: 'white' }}>Thành tích & Tổng kết</h3>
             <div style={{ width: '24px' }}></div>

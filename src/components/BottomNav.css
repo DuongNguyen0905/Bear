@@ -13,8 +13,14 @@
   z-index: 1000;
   border-radius: 34px;
   background: rgba(15, 15, 20, 0.4);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  /* backdrop-filter chỉ làm mờ/lệch PHÔNG NỀN nhìn xuyên qua lớp kính, icon
+     và chữ (con của thanh này, vẽ đè lên trên) không hề bị ảnh hưởng — nên
+     dùng bộ lọc khúc xạ thật (feDisplacementMap) trực tiếp ở đây an toàn,
+     không cần tách lớp riêng như .liquid-glass. Đây là mặt kính nổi bật
+     nhất, xuất hiện cố định một lần trên màn hình nên "chịu" được chi phí
+     GPU cao hơn của bộ lọc này. */
+  backdrop-filter: blur(20px) saturate(var(--glass-saturate)) url(#liquid-glass-distortion);
+  -webkit-backdrop-filter: blur(20px) saturate(var(--glass-saturate));
   border: 1px solid rgba(255, 255, 255, 0.15);
   box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.2);
 }
