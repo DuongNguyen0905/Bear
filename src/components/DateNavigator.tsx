@@ -36,18 +36,19 @@ const DateNavigator: React.FC = () => {
         )}
       </div>
 
-      <button 
-        onClick={nextDay} 
-        disabled={today}
-        style={{ padding: '10px', backgroundColor: today ? 'transparent' : 'white', borderRadius: '50%', border: 'none', boxShadow: today ? 'none' : '0 4px 12px rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'transform 0.2s', opacity: today ? 0.3 : 1 }}
+      <button
+        onClick={nextDay}
+        style={{ padding: '10px', backgroundColor: 'white', borderRadius: '50%', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'transform 0.2s' }}
       >
         <ChevronRight size={22} color="var(--primary-dark)" />
       </button>
 
-      {/* Custom Calendar Modal */}
+      {/* Custom Calendar Modal — cho phép xem trước ngày tương lai, để coi lại
+          những việc đã đặt trước cho ngày đó (xem tính năng đặt việc ở Home). */}
       {showCalendar && (
-        <CustomCalendar 
-          selectedDate={selectedDate} 
+        <CustomCalendar
+          selectedDate={selectedDate}
+          allowFuture
           onDateSelect={(date: Date) => { setSelectedDate(date); setShowCalendar(false); }}
           onClose={() => setShowCalendar(false)}
         />
