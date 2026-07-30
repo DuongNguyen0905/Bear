@@ -41,17 +41,22 @@ const InlineDropdown: React.FC<InlineDropdownProps> = ({ options, value, onChang
 
   return (
     <>
-      {/* Bắt click ra ngoài để đóng — trong suốt, không làm tối nền phía sau. */}
+      {/* Bắt click ra ngoài để đóng — trong suốt, không làm tối nền phía sau.
+          touchAction: 'none' để vuốt trên vùng này không bị "chuyền" xuống
+          cuộn trang phía sau (dù nằm position:fixed, phần tử này vẫn là con
+          trong cây DOM của .content-area đang cuộn được, nên mặc định trình
+          duyệt vẫn coi thao tác vuốt là để cuộn trang nếu không chặn rõ). */}
       <div
         onClick={() => requestClose(onClose)}
-        style={{ position: 'fixed', inset: 0, zIndex: 3500, background: 'transparent' }}
+        style={{ position: 'fixed', inset: 0, zIndex: 3500, background: 'transparent', touchAction: 'none' }}
       />
       <div
-        className="card glass-panel"
+        className="card glass-panel no-scrollbar"
         onClick={(e) => e.stopPropagation()}
         style={{
           position: 'absolute', top: 'calc(100% + 8px)', left: 0, right: 0, zIndex: 3501,
           padding: '8px', margin: 0, maxHeight: '260px', overflowY: 'auto',
+          overscrollBehavior: 'contain', touchAction: 'pan-y',
           transformOrigin: 'top center',
           opacity: active ? 1 : 0,
           transform: active ? 'scale(1) translateY(0)' : 'scale(0.96) translateY(-4px)',
