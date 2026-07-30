@@ -75,7 +75,7 @@ input, textarea, select, [contenteditable="true"] {
 }
 
 body {
-  font-family: 'Quicksand', -apple-system, sans-serif;
+  font-family: 'Be Vietnam Pro', -apple-system, sans-serif;
   background-color: var(--bg-main);
   background-image: var(--bg-gradient);
   color: var(--text-main);
@@ -475,6 +475,18 @@ input[type="color"]::-webkit-color-swatch {
 [style*="border: '1px solid #eee'"] {
   border: 1px solid var(--border-glass) !important;
 }
+
+/* Tăng cỡ chữ cho to, dễ đọc hơn — phần lớn cỡ chữ trong app được set cứng
+   qua inline style (fontSize: '13px'...) rải rác ở hàng trăm chỗ trong JSX,
+   nên bắt theo chuỗi đã render ra thay vì sửa từng nơi (giống cách các
+   override màu ở trên đang làm). Cỡ càng nhỏ càng khó đọc nên tăng nhiều
+   hơn; cỡ đã đủ lớn (16px+) giữ nguyên, không cần đôn thêm. */
+[style*="font-size: 10px"] { font-size: 12px !important; }
+[style*="font-size: 11px"] { font-size: 13px !important; }
+[style*="font-size: 12px"] { font-size: 14px !important; }
+[style*="font-size: 13px"] { font-size: 15px !important; }
+[style*="font-size: 14px"] { font-size: 16px !important; }
+[style*="font-size: 15px"] { font-size: 17px !important; }
 
 /* Utilities for text colors */
 .text-main { color: var(--text-main); }
