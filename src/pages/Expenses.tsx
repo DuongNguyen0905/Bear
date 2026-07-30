@@ -6,7 +6,7 @@ import { format } from 'date-fns';
 import { PieChart, Pie, Tooltip, ResponsiveContainer, Cell, Legend } from 'recharts';
 import { exportDexieBackup, importDexieBackup } from '../utils/backup';
 import { useAndroidBack } from '../hooks/useAndroidBack';
-import RoundedPicker from '../components/RoundedPicker';
+import InlineDropdown from '../components/InlineDropdown';
 import { useClosingTransition } from '../hooks/useClosingTransition';
 import { formatThousands, stripThousands } from '../utils/formatNumber';
 
@@ -361,18 +361,16 @@ const Expenses: React.FC = () => {
               <span>{category}</span>
               <ChevronDown size={16} color="var(--text-muted)" />
             </button>
+            {showCategoryPicker && (
+              <InlineDropdown
+                options={(activeTab === 'expense' ? expenseCategories : incomeCategories).map(cat => ({ value: cat, label: cat }))}
+                value={category}
+                onChange={setCategory}
+                onClose={() => setShowCategoryPicker(false)}
+              />
+            )}
           </div>
         </div>
-
-        {showCategoryPicker && (
-          <RoundedPicker
-            title={activeTab === 'expense' ? 'Chọn danh mục chi tiêu' : 'Chọn nguồn thu'}
-            options={(activeTab === 'expense' ? expenseCategories : incomeCategories).map(cat => ({ value: cat, label: cat }))}
-            value={category}
-            onChange={setCategory}
-            onClose={() => setShowCategoryPicker(false)}
-          />
-        )}
 
         {activeTab === 'expense' && (
           <div style={{ display: 'flex', gap: '10px', marginBottom: '16px' }}>
