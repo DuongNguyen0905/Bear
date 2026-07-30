@@ -39,6 +39,7 @@ const Home: React.FC = () => {
   const [newGoalTarget, setNewGoalTarget] = useState('');
   const [showFundModal, setShowFundModal] = useState<string | null>(null);
   const [fundAmount, setFundAmount] = useState('');
+  const [fundError, setFundError] = useState('');
   const [confirmDeleteGoal, setConfirmDeleteGoal] = useState<string | null>(null);
   const [confirmDeleteTask, setConfirmDeleteTask] = useState<string | null>(null);
   const [showHallModal, setShowHallModal] = useState(false);
@@ -49,6 +50,7 @@ const Home: React.FC = () => {
   
   const [streak, setStreak] = useState(0);
   const [safeDailyLimit, setSafeDailyLimit] = useState(0);
+  const [budgetStatus, setBudgetStatus] = useState({ currentGlobalBalance: 0, accumulatedSavings: 0 });
   const [greeting, setGreeting] = useState('');
 
   useEffect(() => {
@@ -70,6 +72,7 @@ const Home: React.FC = () => {
     const month = dateKey.substring(5, 7);
     const bStatus = await financeService.getBudgetStatus(year, month);
     setSafeDailyLimit(bStatus.safeDailyLimit);
+    setBudgetStatus(bStatus);
     
     // Streak logic: đếm số ngày liên tiếp có hoạt động (nhật ký hoặc ảnh),
     // tính từ hôm nay lùi về trước — nếu hôm nay chưa ghi gì thì tính từ hôm qua
@@ -179,6 +182,17 @@ const Home: React.FC = () => {
   const handleFundGoal = async () => {
     const amount = parseInt(fundAmount);
     if (!showFundModal || !amount || amount <= 0) return;
+
+    // Cho phép nạp bằng tiền tích luỹ từ các tháng trước, không chỉ riêng số dư
+    // tháng này — chỉ chặn khi tổng CẢ HAI cộng lại vẫn không đủ, vì đó mới thật
+    // sự là không có tiền (chứ không phải cứ tháng này âm là chặn).
+    const totalAvailable = budgetStatus.currentGlobalBalance + budgetStatus.accumulatedSavings;
+    if (amount > totalAvailable) {
+      setFundError(`Không đủ tiền — tổng số dư hiện có (tháng này + tiết kiệm các tháng trước) chỉ còn ${totalAvailable.toLocaleString('vi-VN')} đ.`);
+      return;
+    }
+
+    setFundError('');
     await goalService.fundGoal(showFundModal, amount, dateKey);
     setFundAmount('');
     setShowFundModal(null);
@@ -313,7 +327,7 @@ const Home: React.FC = () => {
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                     <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{(goal.currentAmount/1000).toFixed(0)}k / {(goal.targetAmount/1000).toFixed(0)}k</span>
-                    <button onClick={() => setShowFundModal(goal.id)} disabled={isCompleted} style={{ background: isCompleted ? 'rgba(255,255,255,0.1)' : 'var(--primary)', borderRadius: '8px', padding: '6px 12px', color: 'white', fontSize: '12px', fontWeight: 'bold' }}>Nạp</button>
+                    <button onClick={() => { setFundError(''); setFundAmount(''); setShowFundModal(goal.id); }} disabled={isCompleted} style={{ background: isCompleted ? 'rgba(255,255,255,0.1)' : 'var(--primary)', borderRadius: '8px', padding: '6px 12px', color: 'white', fontSize: '12px', fontWeight: 'bold' }}>Nạp</button>
                   </div>
                   <p style={{ margin: 0, fontSize: '11px', color: 'var(--text-muted)' }}>Tạo lúc {format(new Date(goal.createdAt), 'HH:mm dd/MM/yyyy')}</p>
                 </div>
@@ -396,7 +410,8 @@ const Home: React.FC = () => {
               <h3 style={{ margin: 0 }}>Bỏ ống heo</h3>
               <button onClick={() => setShowFundModal(null)}><X size={20} color="white" /></button>
             </div>
-            <input type="text" inputMode="numeric" placeholder="Số tiền nạp (VNĐ)" value={formatThousands(fundAmount)} onChange={e => setFundAmount(stripThousands(e.target.value))} style={{ marginBottom: '24px' }} />
+            <input type="text" inputMode="numeric" placeholder="Số tiền nạp (VNĐ)" value={formatThousands(fundAmount)} onChange={e => { setFundAmount(stripThousands(e.target.value)); setFundError(''); }} style={{ marginBottom: fundError ? '10px' : '24px' }} />
+            {fundError && <p style={{ margin: '0 0 16px 0', fontSize: '13px', color: 'var(--danger)', fontWeight: 600 }}>{fundError}</p>}
             <button onClick={handleFundGoal} className="btn-primary">Nạp tiền</button>
           </div>
         </div>

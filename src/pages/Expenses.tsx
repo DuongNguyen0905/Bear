@@ -22,7 +22,12 @@ const Expenses: React.FC = () => {
   const [category, setCategory] = useState('');
   
   const [expenseCategories, setExpenseCategories] = useState<string[]>(['Ăn uống', 'Giải trí', 'Di chuyển', 'Mua sắm', 'Đau ốm', 'Tiền trọ']);
-  const incomeCategories = ['Lương', 'Thưởng', 'Được cho', 'Khác'];
+  // "Vốn có sẵn": dùng khi ghi nhận một khoản tiền lớn đã có từ trước (không
+  // phải lương/thưởng/được cho mới phát sinh) — ví dụ tiền tiết kiệm cũ muốn
+  // đưa vào hệ thống để tính chung vào số dư. Ghi vào ngày nào thì tính vào
+  // số dư của tháng đó, và sẽ tự cộng dồn vào Quỹ Tiết Kiệm Tích Lũy khi
+  // tháng đó qua đi, giống mọi khoản thu khác.
+  const incomeCategories = ['Lương', 'Thưởng', 'Được cho', 'Vốn có sẵn', 'Khác'];
 
   const [showSettings, setShowSettings] = useState(false);
   const [showBudgetModal, setShowBudgetModal] = useState(false);
