@@ -14,6 +14,11 @@
   --primary-dark: #1f6feb;
   --secondary: #9b72cb;
   --danger: #ff7b72;
+  /* Nền nút đặc màu đỏ + chữ trắng dùng --danger trực tiếp chỉ đạt tỉ lệ
+     tương phản ~2.5:1 (dưới ngưỡng khuyến nghị 3:1 cho chữ đậm) — dùng bản
+     đậm hơn này riêng cho NỀN nút, còn --danger vẫn giữ cho chữ/icon trên
+     nền tối (ở đó độ sáng của nó lại là điểm mạnh, không đổi). */
+  --danger-dark: #c9463d;
   --success: #2ea043;
   --warning: #d29922;
 
@@ -40,12 +45,19 @@
 
   /* Liquid Glass tokens — dùng chung cho mọi mặt kính trong app để đồng bộ
      một ngôn ngữ thiết kế, thay vì mỗi nơi tự khai blur/màu riêng. */
+  /* Nền kính từng chỉ 6% trắng + saturate 180% — quá trong, để khối màu nền
+     động (.app-container::before) xuyên qua gần như không kiểm soát, có chỗ
+     làm chữ xám/mờ lẫn vào nền. Neo lại bằng một nền tối làm chủ đạo (giống
+     tinh thần bản gốc trước khi làm lại) rồi mới phủ lớp kính sáng/bão hoà
+     lên trên — vừa nổi bật hơn (không "gần như vô hình"), vừa ổn định độ
+     tương phản cho chữ vì nền không còn phụ thuộc hoàn toàn vào thứ đang
+     "chảy" phía sau.  */
   --glass-blur: 22px;
-  --glass-saturate: 180%;
-  --glass-bg: rgba(255, 255, 255, 0.06);
-  --glass-bg-strong: rgba(255, 255, 255, 0.1);
-  --glass-specular: linear-gradient(135deg, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0.08) 35%, rgba(255,255,255,0) 60%);
-  --glass-edge: linear-gradient(180deg, rgba(255,255,255,0.5), rgba(255,255,255,0) 40%, rgba(255,255,255,0) 60%, rgba(255,255,255,0.15));
+  --glass-saturate: 145%;
+  --glass-bg: rgba(22, 22, 34, 0.55);
+  --glass-bg-strong: rgba(30, 30, 46, 0.68);
+  --glass-specular: linear-gradient(135deg, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.05) 35%, rgba(255,255,255,0) 60%);
+  --glass-edge: linear-gradient(180deg, rgba(255,255,255,0.35), rgba(255,255,255,0) 40%, rgba(255,255,255,0) 60%, rgba(255,255,255,0.1));
 }
 
 * {

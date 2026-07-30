@@ -393,7 +393,7 @@ const Expenses: React.FC = () => {
           disabled={!(parseInt(amount) > 0) || !desc.trim()}
           style={{
             width: '100%', padding: '16px', borderRadius: '14px', border: 'none', fontWeight: 'bold', fontSize: '16px', color: 'white',
-            backgroundColor: activeTab === 'expense' ? 'var(--danger)' : 'var(--success)',
+            backgroundColor: activeTab === 'expense' ? 'var(--danger-dark)' : 'var(--success)',
             opacity: (!(parseInt(amount) > 0) || !desc.trim()) ? 0.5 : 1,
             boxShadow: activeTab === 'expense' ? '0 4px 15px rgba(255, 71, 87, 0.3)' : '0 4px 15px rgba(46, 213, 115, 0.3)'
           }}

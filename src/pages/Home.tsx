@@ -327,7 +327,7 @@ const Home: React.FC = () => {
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                     <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{(goal.currentAmount/1000).toFixed(0)}k / {(goal.targetAmount/1000).toFixed(0)}k</span>
-                    <button onClick={() => { setFundError(''); setFundAmount(''); setShowFundModal(goal.id); }} disabled={isCompleted} style={{ background: isCompleted ? 'rgba(255,255,255,0.1)' : 'var(--primary)', borderRadius: '8px', padding: '6px 12px', color: 'white', fontSize: '12px', fontWeight: 'bold' }}>Nạp</button>
+                    <button onClick={() => { setFundError(''); setFundAmount(''); setShowFundModal(goal.id); }} disabled={isCompleted} style={{ background: isCompleted ? 'rgba(255,255,255,0.1)' : 'var(--primary-dark)', borderRadius: '8px', padding: '6px 12px', color: 'white', fontSize: '12px', fontWeight: 'bold' }}>Nạp</button>
                   </div>
                   <p style={{ margin: 0, fontSize: '11px', color: 'var(--text-muted)' }}>Tạo lúc {format(new Date(goal.createdAt), 'HH:mm dd/MM/yyyy')}</p>
                 </div>
