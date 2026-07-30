@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { financeService } from '../services/financeService';
 import { useDate } from '../contexts/DateContext';
-import { Settings, Plus, ChevronLeft, TrendingDown, TrendingUp, PieChart as PieChartIcon, AlertTriangle, CheckCircle, Activity, PiggyBank, Camera, Download, Upload, Edit2, Save } from 'lucide-react';
+import { Settings, Plus, ChevronLeft, ChevronDown, TrendingDown, TrendingUp, PieChart as PieChartIcon, AlertTriangle, CheckCircle, Activity, PiggyBank, Camera, Download, Upload, Edit2, Save } from 'lucide-react';
 import { format } from 'date-fns';
 import { PieChart, Pie, Tooltip, ResponsiveContainer, Cell, Legend } from 'recharts';
 import { exportDexieBackup, importDexieBackup } from '../utils/backup';
 import { useAndroidBack } from '../hooks/useAndroidBack';
+import RoundedPicker from '../components/RoundedPicker';
 import { useClosingTransition } from '../hooks/useClosingTransition';
 import { formatThousands, stripThousands } from '../utils/formatNumber';
 
@@ -20,7 +21,8 @@ const Expenses: React.FC = () => {
   const [amount, setAmount] = useState('');
   const [desc, setDesc] = useState('');
   const [category, setCategory] = useState('');
-  
+  const [showCategoryPicker, setShowCategoryPicker] = useState(false);
+
   const [expenseCategories, setExpenseCategories] = useState<string[]>(['Ăn uống', 'Giải trí', 'Di chuyển', 'Mua sắm', 'Đau ốm', 'Tiền trọ']);
   // "Vốn có sẵn": dùng khi ghi nhận một khoản tiền lớn đã có từ trước (không
   // phải lương/thưởng/được cho mới phát sinh) — ví dụ tiền tiết kiệm cũ muốn
@@ -351,17 +353,26 @@ const Expenses: React.FC = () => {
             )}
           </div>
           <div className="gemini-input-wrapper" style={{ flex: 1 }}>
-            <select 
-              value={category} 
-              onChange={(e) => setCategory(e.target.value)} 
-              style={{ width: '100%', padding: '16px 10px', borderRadius: '14px', border: 'none', fontSize: '14px', height: '100%' }}
+            <button
+              type="button"
+              onClick={() => setShowCategoryPicker(true)}
+              style={{ width: '100%', padding: '16px 14px', borderRadius: '14px', border: 'none', fontSize: '14px', height: '100%', background: 'transparent', color: 'var(--text-main)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', textAlign: 'left' }}
             >
-              {(activeTab === 'expense' ? expenseCategories : incomeCategories).map(cat => (
-                <option key={cat} value={cat}>{cat}</option>
-              ))}
-            </select>
+              <span>{category}</span>
+              <ChevronDown size={16} color="var(--text-muted)" />
+            </button>
           </div>
         </div>
+
+        {showCategoryPicker && (
+          <RoundedPicker
+            title={activeTab === 'expense' ? 'Chọn danh mục chi tiêu' : 'Chọn nguồn thu'}
+            options={(activeTab === 'expense' ? expenseCategories : incomeCategories).map(cat => ({ value: cat, label: cat }))}
+            value={category}
+            onChange={setCategory}
+            onClose={() => setShowCategoryPicker(false)}
+          />
+        )}
 
         {activeTab === 'expense' && (
           <div style={{ display: 'flex', gap: '10px', marginBottom: '16px' }}>
