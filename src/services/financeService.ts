@@ -42,8 +42,15 @@ export const financeService = {
       }
     });
 
-    const balance = totalIncome - totalExpense;
-    const savingsRate = totalIncome > 0 ? ((balance / totalIncome) * 100).toFixed(1) : 0;
+    // Tỷ lệ tiết kiệm phải tính trên TỔNG tiền có thể tiêu trong tháng (số dư
+    // mang sang từ tháng trước + thu nhập mới), không chỉ riêng thu nhập mới —
+    // nếu không, tháng nào không có khoản "thu nhập" nào (chỉ tiêu từ số dư có
+    // sẵn) sẽ luôn ra 0% dù thực tế vẫn dư tiền, vì totalIncome = 0.
+    const monthKey = `${year}-${month.padStart(2, '0')}`;
+    const initialBalance = await this.getSetting<number>(`initialBalance_${monthKey}`, 0);
+    const totalAvailable = initialBalance + totalIncome;
+    const balance = totalAvailable - totalExpense;
+    const savingsRate = totalAvailable > 0 ? ((balance / totalAvailable) * 100).toFixed(1) : 0;
     
     // Avg Daily Expense calculation (based on current day of the month)
     const currentDay = new Date().getDate();
