@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { financeService } from '../services/financeService';
 import { useDate } from '../contexts/DateContext';
-import { Settings, Plus, ChevronLeft, ChevronDown, TrendingDown, TrendingUp, PieChart as PieChartIcon, AlertTriangle, CheckCircle, Activity, PiggyBank, Camera, Download, Upload, Edit2, Save } from 'lucide-react';
+import { Settings, Plus, ChevronLeft, ChevronDown, TrendingDown, TrendingUp, PieChart as PieChartIcon, AlertTriangle, CheckCircle, Activity, PiggyBank, Camera, Download, Upload, Edit2, Save, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { PieChart, Pie, Tooltip, ResponsiveContainer, Cell, Legend } from 'recharts';
 import { exportDexieBackup, importDexieBackup } from '../utils/backup';
 import { useAndroidBack } from '../hooks/useAndroidBack';
 import InlineDropdown from '../components/InlineDropdown';
+import ConfirmDialog from '../components/ConfirmDialog';
 import { useClosingTransition } from '../hooks/useClosingTransition';
 import { formatThousands, stripThousands } from '../utils/formatNumber';
 
@@ -43,6 +44,9 @@ const Expenses: React.FC = () => {
   const [showSavingsModal, setShowSavingsModal] = useState(false);
   const [editingMonth, setEditingMonth] = useState<string | null>(null);
   const [editInitialBalance, setEditInitialBalance] = useState<string>('');
+
+  const [editingTransactionId, setEditingTransactionId] = useState<string | null>(null);
+  const [confirmDeleteTransaction, setConfirmDeleteTransaction] = useState<string | null>(null);
 
   const [isScanning, setIsScanning] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -129,15 +133,49 @@ const Expenses: React.FC = () => {
   const handleSave = async () => {
     const parsedAmount = parseInt(amount);
     if (!parsedAmount || parsedAmount <= 0 || !desc.trim()) return;
-    await financeService.addTransaction({
-      type: activeTab,
-      amount: parsedAmount,
-      category,
-      note: desc.trim(),
-      dateKey
-    });
+
+    if (editingTransactionId) {
+      // Sửa giao dịch có sẵn — số dư/quỹ tích lũy tự tính lại đúng vì đều suy
+      // ra từ chính bảng transactions, không cần chỉnh gì thêm ở nơi khác.
+      await financeService.updateTransaction(editingTransactionId, {
+        amount: parsedAmount,
+        category,
+        note: desc.trim(),
+      });
+      setEditingTransactionId(null);
+    } else {
+      await financeService.addTransaction({
+        type: activeTab,
+        amount: parsedAmount,
+        category,
+        note: desc.trim(),
+        dateKey
+      });
+    }
     setAmount('');
     setDesc('');
+    loadData();
+  };
+
+  const handleEditTransaction = (t: any) => {
+    setActiveTab(t.type);
+    setEditingTransactionId(t.id);
+    setAmount(String(t.amount));
+    setCategory(t.category);
+    setDesc(t.note || '');
+  };
+
+  const handleCancelEditTransaction = () => {
+    setEditingTransactionId(null);
+    setAmount('');
+    setDesc('');
+    setCategory(activeTab === 'expense' ? expenseCategories[0] : incomeCategories[0]);
+  };
+
+  const handleDeleteTransaction = async (id: string) => {
+    await financeService.deleteTransaction(id);
+    setConfirmDeleteTransaction(null);
+    if (editingTransactionId === id) handleCancelEditTransaction();
     loadData();
   };
 
@@ -202,20 +240,35 @@ const Expenses: React.FC = () => {
     loadData();
   };
 
-  // Prepare chart data
-  const categoryTotals: Record<string, number> = {};
+  // Prepare chart data — biểu đồ đổi theo tab đang chọn (chi tiêu hoặc thu nhập).
+  const expenseCategoryTotals: Record<string, number> = {};
   // Bỏ các khoản nạp vào mục tiêu (goalId) khỏi biểu đồ — đó là tiền chuyển
   // sang tiết kiệm, không phải chi tiêu theo danh mục thật.
   transactions.filter(t => t.type === 'expense' && !t.goalId).forEach(t => {
-    categoryTotals[t.category] = (categoryTotals[t.category] || 0) + t.amount;
+    expenseCategoryTotals[t.category] = (expenseCategoryTotals[t.category] || 0) + t.amount;
   });
-  
+
+  const incomeCategoryTotals: Record<string, number> = {};
+  transactions.filter(t => t.type === 'income' && !t.goalId).forEach(t => {
+    incomeCategoryTotals[t.category] = (incomeCategoryTotals[t.category] || 0) + t.amount;
+  });
+
+  const categoryTotals = activeTab === 'expense' ? expenseCategoryTotals : incomeCategoryTotals;
   const chartData = Object.keys(categoryTotals).map(cat => ({
     name: cat,
     amount: categoryTotals[cat]
   })).sort((a, b) => b.amount - a.amount);
 
-  const colors = ['#ff7b72', '#ff9f43', '#feca57', '#54a0ff', '#5f27cd', '#ff9ff3'];
+  const colors = activeTab === 'expense'
+    ? ['#ff7b72', '#ff9f43', '#feca57', '#54a0ff', '#5f27cd', '#ff9ff3']
+    : ['#2ea043', '#54a0ff', '#feca57', '#5f27cd', '#ff9ff3', '#ff9f43'];
+
+  // Danh sách giao dịch hiển thị/sửa/xoá được — cùng loại với tab đang chọn,
+  // mới nhất lên trước. Ẩn khoản nạp mục tiêu (goalId) vì sửa/xoá ở đây sẽ
+  // làm lệch currentAmount của mục tiêu (phải xoá qua chính mục tiêu đó).
+  const editableTransactions = transactions
+    .filter(t => t.type === activeTab && !t.goalId)
+    .sort((a, b) => b.createdAt - a.createdAt);
 
   return (
     <div className="page-container" style={{ paddingBottom: '100px' }}>
@@ -400,37 +453,49 @@ const Expenses: React.FC = () => {
           />
         </div>
         
-        <button
-          onClick={handleSave}
-          disabled={!(parseInt(amount) > 0) || !desc.trim()}
-          style={{
-            width: '100%', padding: '16px', borderRadius: '14px', border: 'none', fontWeight: 'bold', fontSize: '16px', color: 'white',
-            backgroundColor: activeTab === 'expense' ? 'var(--danger-dark)' : 'var(--success)',
-            opacity: (!(parseInt(amount) > 0) || !desc.trim()) ? 0.5 : 1,
-            boxShadow: activeTab === 'expense' ? '0 4px 15px rgba(255, 71, 87, 0.3)' : '0 4px 15px rgba(46, 213, 115, 0.3)'
-          }}
-        >
-          {activeTab === 'expense' ? 'Ghi nhận chi tiêu' : 'Ghi nhận thu nhập'}
-        </button>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button
+            onClick={handleSave}
+            disabled={!(parseInt(amount) > 0) || !desc.trim()}
+            style={{
+              flex: 1, padding: '16px', borderRadius: '14px', border: 'none', fontWeight: 'bold', fontSize: '16px', color: 'white',
+              backgroundColor: activeTab === 'expense' ? 'var(--danger-dark)' : 'var(--success)',
+              opacity: (!(parseInt(amount) > 0) || !desc.trim()) ? 0.5 : 1,
+              boxShadow: activeTab === 'expense' ? '0 4px 15px rgba(255, 71, 87, 0.3)' : '0 4px 15px rgba(46, 213, 115, 0.3)'
+            }}
+          >
+            {editingTransactionId ? 'Lưu thay đổi' : (activeTab === 'expense' ? 'Ghi nhận chi tiêu' : 'Ghi nhận thu nhập')}
+          </button>
+          {editingTransactionId && (
+            <button
+              onClick={handleCancelEditTransaction}
+              style={{ padding: '16px', borderRadius: '14px', border: '1px solid var(--border-glass)', background: 'rgba(255,255,255,0.06)', color: 'var(--text-main)' }}
+            >
+              Hủy
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Chart */}
       <div className="card glass-panel" style={{ padding: '20px', borderRadius: '20px', marginBottom: '24px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px' }}>
           <PieChartIcon size={20} color="var(--primary)" />
-          <h3 style={{ margin: 0, fontSize: '16px' }}>Biểu đồ chi tiêu tháng {format(selectedDate, 'MM')}</h3>
+          <h3 style={{ margin: 0, fontSize: '16px' }}>
+            {activeTab === 'expense' ? `Biểu đồ chi tiêu tháng ${format(selectedDate, 'MM')}` : `Biểu đồ thu nhập tháng ${format(selectedDate, 'MM')}`}
+          </h3>
         </div>
-        
+
         {chartData.length > 0 ? (
           <div style={{ width: '100%', height: '280px' }}>
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
-                <Pie 
-                  data={chartData} 
-                  dataKey="amount" 
-                  nameKey="name" 
-                  cx="50%" cy="50%" 
-                  outerRadius={80} 
+                <Pie
+                  data={chartData}
+                  dataKey="amount"
+                  nameKey="name"
+                  cx="50%" cy="50%"
+                  outerRadius={80}
                   labelLine={false}
                   label={({ name, percent }) => percent > 0.05 ? `${name}` : ''}
                 >
@@ -438,8 +503,8 @@ const Expenses: React.FC = () => {
                     <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
                   ))}
                 </Pie>
-                <Tooltip 
-                  formatter={(value: number) => [`${value.toLocaleString('vi-VN')} đ`, 'Chi tiêu']}
+                <Tooltip
+                  formatter={(value: number) => [`${value.toLocaleString('vi-VN')} đ`, activeTab === 'expense' ? 'Chi tiêu' : 'Thu nhập']}
                   contentStyle={{ backgroundColor: 'rgba(15, 15, 20, 0.9)', borderRadius: '8px', border: 'none', color: 'white' }}
                   itemStyle={{ color: 'white' }}
                 />
@@ -448,9 +513,48 @@ const Expenses: React.FC = () => {
             </ResponsiveContainer>
           </div>
         ) : (
-          <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>Chưa có dữ liệu chi tiêu trong tháng này.</p>
+          <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
+            {activeTab === 'expense' ? 'Chưa có dữ liệu chi tiêu trong tháng này.' : 'Chưa có dữ liệu thu nhập trong tháng này.'}
+          </p>
         )}
       </div>
+
+      {/* Danh sách giao dịch — sửa/xoá được, để chỉnh lại tổng thu/chi khi lỡ
+          ghi nhầm, và Quỹ Tiết Kiệm Tích Lũy sẽ tự tính lại đúng theo đó. */}
+      <div className="card glass-panel" style={{ padding: '20px', borderRadius: '20px', marginBottom: '24px' }}>
+        <h3 style={{ margin: '0 0 16px 0', fontSize: '16px' }}>
+          {activeTab === 'expense' ? `Giao dịch chi tiêu tháng ${format(selectedDate, 'MM')}` : `Giao dịch thu nhập tháng ${format(selectedDate, 'MM')}`}
+        </h3>
+        {editableTransactions.length === 0 ? (
+          <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px', margin: 0 }}>Chưa có giao dịch nào.</p>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {editableTransactions.map((t) => (
+              <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', borderRadius: '12px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-glass)' }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: '14px', fontWeight: 700, color: activeTab === 'expense' ? 'var(--danger)' : 'var(--success)' }}>
+                    {activeTab === 'expense' ? '-' : '+'}{t.amount.toLocaleString('vi-VN')} đ
+                  </div>
+                  <div style={{ fontSize: '12px', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {t.category}{t.note ? ` · ${t.note}` : ''} · {format(new Date(t.dateKey), 'dd/MM')}
+                  </div>
+                </div>
+                <button onClick={() => handleEditTransaction(t)} style={{ color: 'var(--text-muted)', padding: '6px' }}><Edit2 size={16} /></button>
+                <button onClick={() => setConfirmDeleteTransaction(t.id)} style={{ color: 'var(--danger)', padding: '6px' }}><Trash2 size={16} /></button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {confirmDeleteTransaction && (
+        <ConfirmDialog
+          title="Xoá giao dịch này?"
+          message="Số tiền này sẽ được trừ khỏi tổng thu/chi và Quỹ Tiết Kiệm Tích Lũy sẽ tự tính lại."
+          onConfirm={() => handleDeleteTransaction(confirmDeleteTransaction)}
+          onCancel={() => setConfirmDeleteTransaction(null)}
+        />
+      )}
 
       {/* Settings Modal (Immersive Full Screen) */}
       {settingsT.shouldRender && (

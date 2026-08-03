@@ -12,6 +12,10 @@ export const financeService = {
     return id;
   },
 
+  async updateTransaction(id: string, data: Partial<Omit<Transaction, 'id' | 'createdAt'>>): Promise<void> {
+    await db.transactions.update(id, data);
+  },
+
   async deleteTransaction(id: string): Promise<void> {
     await db.transactions.delete(id);
   },
