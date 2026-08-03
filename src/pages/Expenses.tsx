@@ -24,12 +24,15 @@ const Expenses: React.FC = () => {
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
 
   const [expenseCategories, setExpenseCategories] = useState<string[]>(['Ăn uống', 'Giải trí', 'Di chuyển', 'Mua sắm', 'Đau ốm', 'Tiền trọ']);
+  // Không có "Lương" ở đây — lương hàng tháng ghi riêng qua ô "Lương tháng
+  // đó" trong Quỹ Tiết Kiệm Tích Lũy (xem savingsModal/budgetModal), để khỏi
+  // trùng 2 chỗ ghi cùng một khoản.
   // "Vốn có sẵn": dùng khi ghi nhận một khoản tiền lớn đã có từ trước (không
   // phải lương/thưởng/được cho mới phát sinh) — ví dụ tiền tiết kiệm cũ muốn
   // đưa vào hệ thống để tính chung vào số dư. Ghi vào ngày nào thì tính vào
   // số dư của tháng đó, và sẽ tự cộng dồn vào Quỹ Tiết Kiệm Tích Lũy khi
   // tháng đó qua đi, giống mọi khoản thu khác.
-  const incomeCategories = ['Lương', 'Thưởng', 'Được cho', 'Vốn có sẵn', 'Khác'];
+  const incomeCategories = ['Thưởng', 'Được cho', 'Vốn có sẵn', 'Khác'];
 
   const [showSettings, setShowSettings] = useState(false);
   const [showBudgetModal, setShowBudgetModal] = useState(false);
@@ -518,9 +521,9 @@ const Expenses: React.FC = () => {
               <button onClick={() => setShowBudgetModal(false)} style={{ background: 'none', border: 'none', color: 'white', fontSize: '20px', fontWeight: 'bold', cursor: 'pointer' }}>X</button>
             </div>
             
-            <h4 style={{ margin: '0 0 6px 0', color: 'var(--text-main)' }}>Số dư ban đầu tháng {format(selectedDate, 'MM/yyyy')}</h4>
+            <h4 style={{ margin: '0 0 6px 0', color: 'var(--text-main)' }}>Lương tháng {format(selectedDate, 'MM/yyyy')}</h4>
             <p style={{ margin: '0 0 10px 0', fontSize: '12px', color: 'var(--text-muted)', lineHeight: 1.5 }}>
-              Chỉ dùng cho khoản tiền một lần (vốn có sẵn khi mới bắt đầu dùng app) — <strong style={{ color: 'var(--danger)' }}>không phải chỗ ghi lương hàng tháng</strong>. Lương/thu nhập đều đặn hãy ghi qua "Khoản Thu" ở màn hình chính để hiện đúng trong thống kê và lịch sử.
+              Số lương của riêng tháng này — mỗi tháng nhập một lần, không cần ghi thêm ở "Khoản Thu" để khỏi bị trùng.
             </p>
             <div className="gemini-input-wrapper" style={{ marginBottom: '20px' }}>
               <input
@@ -568,7 +571,7 @@ const Expenses: React.FC = () => {
 
             <h4 style={{ margin: '0 0 6px 0', color: 'var(--text-main)' }}>Lịch sử các tháng trước</h4>
             <p style={{ margin: '0 0 15px 0', fontSize: '12px', color: 'var(--text-muted)', lineHeight: 1.5 }}>
-              "Số dư ban đầu" của mỗi tháng chỉ nên sửa khi có khoản tiền một lần phát sinh đúng tháng đó — <strong style={{ color: 'var(--danger)' }}>không phải nơi ghi lương hàng tháng</strong> (ghi lương qua "Khoản Thu" ở màn hình chính). Nhập cùng một số vào nhiều tháng liền sẽ bị cộng dồn nhiều lần, làm tổng quỹ tích lũy cao hơn thực tế.
+              Mỗi tháng nhập đúng số lương của riêng tháng đó — không cần ghi lại ở "Khoản Thu" để khỏi bị tính trùng.
             </p>
 
             {budgetStatus.accumulatedSavingsDetails && budgetStatus.accumulatedSavingsDetails.length > 0 ? (
@@ -589,7 +592,7 @@ const Expenses: React.FC = () => {
 
                     <div style={{ background: 'rgba(0,0,0,0.1)', padding: '10px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <div style={{ flex: 1 }}>
-                        <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Số dư ban đầu</span>
+                        <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Lương tháng {detail.month.split('-').reverse().join('/')}</span>
                         {editingMonth === detail.month ? (
                           <input
                             type="text"
