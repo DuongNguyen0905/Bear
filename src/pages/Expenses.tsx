@@ -518,7 +518,10 @@ const Expenses: React.FC = () => {
               <button onClick={() => setShowBudgetModal(false)} style={{ background: 'none', border: 'none', color: 'white', fontSize: '20px', fontWeight: 'bold', cursor: 'pointer' }}>X</button>
             </div>
             
-            <h4 style={{ margin: '0 0 10px 0', color: 'var(--text-main)' }}>Số dư ban đầu tháng {format(selectedDate, 'MM/yyyy')}</h4>
+            <h4 style={{ margin: '0 0 6px 0', color: 'var(--text-main)' }}>Số dư ban đầu tháng {format(selectedDate, 'MM/yyyy')}</h4>
+            <p style={{ margin: '0 0 10px 0', fontSize: '12px', color: 'var(--text-muted)', lineHeight: 1.5 }}>
+              Chỉ dùng cho khoản tiền một lần (vốn có sẵn khi mới bắt đầu dùng app) — <strong style={{ color: 'var(--danger)' }}>không phải chỗ ghi lương hàng tháng</strong>. Lương/thu nhập đều đặn hãy ghi qua "Khoản Thu" ở màn hình chính để hiện đúng trong thống kê và lịch sử.
+            </p>
             <div className="gemini-input-wrapper" style={{ marginBottom: '20px' }}>
               <input
                 type="text" inputMode="numeric" value={formatThousands(initialBalance)} placeholder="Ví dụ: 5.000.000"
@@ -563,8 +566,11 @@ const Expenses: React.FC = () => {
               <h1 style={{ margin: 0, fontSize: '36px' }}>{budgetStatus.accumulatedSavings > 0 ? '+' : ''}{budgetStatus.accumulatedSavings?.toLocaleString('vi-VN')} đ</h1>
             </div>
 
-            <h4 style={{ margin: '0 0 15px 0', color: 'var(--text-main)' }}>Lịch sử các tháng trước</h4>
-            
+            <h4 style={{ margin: '0 0 6px 0', color: 'var(--text-main)' }}>Lịch sử các tháng trước</h4>
+            <p style={{ margin: '0 0 15px 0', fontSize: '12px', color: 'var(--text-muted)', lineHeight: 1.5 }}>
+              "Số dư ban đầu" của mỗi tháng chỉ nên sửa khi có khoản tiền một lần phát sinh đúng tháng đó — <strong style={{ color: 'var(--danger)' }}>không phải nơi ghi lương hàng tháng</strong> (ghi lương qua "Khoản Thu" ở màn hình chính). Nhập cùng một số vào nhiều tháng liền sẽ bị cộng dồn nhiều lần, làm tổng quỹ tích lũy cao hơn thực tế.
+            </p>
+
             {budgetStatus.accumulatedSavingsDetails && budgetStatus.accumulatedSavingsDetails.length > 0 ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
                 {budgetStatus.accumulatedSavingsDetails.map((detail: any) => (
