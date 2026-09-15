@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Home, Camera, PiggyBank, PenLine, Receipt, X } from 'lucide-react';
+import { Home, Camera, PiggyBank, BookHeart, PenLine, Receipt, X } from 'lucide-react';
 import './BottomNav.css';
 import { useDate } from '../contexts/DateContext';
 import { memoryService } from '../services/memoryService';
@@ -115,23 +115,27 @@ const BottomNav: React.FC = () => {
         <input type="file" accept="image/*" capture="environment" ref={fileInputRef} onChange={handleFileChange} style={{ display: 'none' }} />
 
         <NavLink to="/" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} title="Home">
-          <div className="icon-container"><Home size={24} strokeWidth={2.5} /></div>
+          <div className="icon-container"><Home size={22} strokeWidth={2.5} /></div>
         </NavLink>
 
         <NavLink to="/goals" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} title="Hũ tiết kiệm">
-          <div className="icon-container"><PiggyBank size={24} strokeWidth={2.5} /></div>
+          <div className="icon-container"><PiggyBank size={22} strokeWidth={2.5} /></div>
+        </NavLink>
+
+        <NavLink to="/memory" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} title="Kỷ niệm">
+          <div className="icon-container"><BookHeart size={22} strokeWidth={2.5} /></div>
         </NavLink>
 
         <button onClick={handleCameraClick} className="nav-item-center" title="Chụp ảnh">
-          <Camera size={26} strokeWidth={2.5} />
+          <Camera size={24} strokeWidth={2.5} />
         </button>
 
         <NavLink to="/diary" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} title="Nhật ký">
-          <div className="icon-container"><PenLine size={24} strokeWidth={2.5} /></div>
+          <div className="icon-container"><PenLine size={22} strokeWidth={2.5} /></div>
         </NavLink>
 
         <NavLink to="/expenses" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} title="Tài chính">
-          <div className="icon-container"><Receipt size={24} strokeWidth={2.5} /></div>
+          <div className="icon-container"><Receipt size={22} strokeWidth={2.5} /></div>
         </NavLink>
       </div>
     </>
