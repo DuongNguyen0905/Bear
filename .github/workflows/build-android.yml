@@ -14,6 +14,20 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Pin stable debug keystore (for consistent SHA-1 across builds — needed for Google Sign-In)
+        run: |
+          mkdir -p android/app
+          if [ ! -f android/app/debug.keystore ]; then
+            keytool -genkeypair -v -keystore android/app/debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+            git config --global user.name "github-actions[bot]"
+            git config --global user.email "github-actions[bot]@users.noreply.github.com"
+            git add android/app/debug.keystore
+            git commit -m "CI: pin stable debug keystore for consistent SHA-1"
+            git push
+          fi
+          echo "--- SHA-1 fingerprint (register this in Google Cloud OAuth client) ---"
+          keytool -list -v -keystore android/app/debug.keystore -storepass android -alias androiddebugkey | grep "SHA1:"
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
