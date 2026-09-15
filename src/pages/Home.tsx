@@ -4,53 +4,25 @@ import { memoryService } from '../services/memoryService';
 import { goalService } from '../services/goalService';
 import { financeService } from '../services/financeService';
 import DateNavigator from '../components/DateNavigator';
-import RoundedPicker from '../components/RoundedPicker';
 import ConfirmDialog from '../components/ConfirmDialog';
 import CustomCalendar from '../components/CustomCalendar';
-
-const REVIEW_MONTH_OPTIONS = Array.from({ length: 12 }, (_, i) => ({ value: String(i + 1).padStart(2, '0'), label: `Tháng ${i + 1}` }));
-const REVIEW_YEAR_OPTIONS = Array.from({ length: 5 }, (_, i) => {
-  const y = new Date().getFullYear() - i;
-  return { value: String(y), label: `Năm ${y}` };
-});
-import { Plus, Trash2, ClipboardList, Target, Award, ChevronLeft, ChevronDown, X, TrendingUp, TrendingDown, Image as ImageIcon, BookOpen, Flame, Wallet, Trophy, CalendarClock } from 'lucide-react';
-import { db } from '../utils/db';
-import type { Goal, Task } from '../utils/db';
+import { Plus, Trash2, ClipboardList, Flame, Wallet, PiggyBank, CalendarClock, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
-import { useAndroidBack } from '../hooks/useAndroidBack';
-import { useClosingTransition } from '../hooks/useClosingTransition';
-import { formatThousands, stripThousands } from '../utils/formatNumber';
 
 const Home: React.FC = () => {
   const { dateKey } = useDate();
   const navigate = useNavigate();
-  
+
   const [tasks, setTasks] = useState<any[]>([]);
   const [newTask, setNewTask] = useState('');
   const [scheduleDate, setScheduleDate] = useState<Date | null>(null);
   const [showScheduleCalendar, setShowScheduleCalendar] = useState(false);
-  const [showReviewMonthPicker, setShowReviewMonthPicker] = useState(false);
-  const [showReviewYearPicker, setShowReviewYearPicker] = useState(false);
-
-  const [goals, setGoals] = useState<Goal[]>([]);
-  const [showGoalModal, setShowGoalModal] = useState(false);
-  const [newGoalTitle, setNewGoalTitle] = useState('');
-  const [newGoalTarget, setNewGoalTarget] = useState('');
-  const [showFundModal, setShowFundModal] = useState<string | null>(null);
-  const [fundAmount, setFundAmount] = useState('');
-  const [fundError, setFundError] = useState('');
-  const [confirmDeleteGoal, setConfirmDeleteGoal] = useState<string | null>(null);
   const [confirmDeleteTask, setConfirmDeleteTask] = useState<string | null>(null);
-  const [showHallModal, setShowHallModal] = useState(false);
-  const [hallTab, setHallTab] = useState<'goals' | 'review'>('goals');
 
-  const [reviewData, setReviewData] = useState<any>(null);
-  const [reviewMonth, setReviewMonth] = useState<string>('');
-  
   const [streak, setStreak] = useState(0);
+  const [completedGoalsCount, setCompletedGoalsCount] = useState(0);
   const [safeDailyLimit, setSafeDailyLimit] = useState(0);
-  const [budgetStatus, setBudgetStatus] = useState({ currentGlobalBalance: 0, accumulatedSavings: 0 });
   const [greeting, setGreeting] = useState('');
 
   useEffect(() => {
@@ -65,18 +37,15 @@ const Home: React.FC = () => {
     const entry = await memoryService.getByDate(dateKey);
     setTasks(entry.tasks || []);
 
-    const allGoals = await goalService.getAllGoals();
-    setGoals(allGoals);
+    const goals = await goalService.getAllGoals();
+    setCompletedGoalsCount(goals.filter(g => g.completed).length);
 
     const year = dateKey.substring(0, 4);
     const month = dateKey.substring(5, 7);
     const bStatus = await financeService.getBudgetStatus(year, month);
     setSafeDailyLimit(bStatus.safeDailyLimit);
-    setBudgetStatus(bStatus);
-    
-    // Streak logic: đếm số ngày liên tiếp có hoạt động (nhật ký hoặc ảnh),
-    // tính từ hôm nay lùi về trước — nếu hôm nay chưa ghi gì thì tính từ hôm qua
-    // (để không mất streak chỉ vì chưa kịp ghi trong ngày).
+
+    const { db } = await import('../utils/db');
     const mems = await db.memories.toArray();
     const today = new Date();
     const yesterday = new Date(today);
@@ -85,8 +54,8 @@ const Home: React.FC = () => {
     const yesterdayStr = yesterday.toISOString().split('T')[0];
 
     const hasActivity = (e: any) => e && ((e.diary && e.diary.trim() !== '') || (e.photos && e.photos.length > 0));
-    const todayEntry = mems.find(m => m.dateKey === todayStr);
-    const yesterdayEntry = mems.find(m => m.dateKey === yesterdayStr);
+    const todayEntry = mems.find((m: any) => m.dateKey === todayStr);
+    const yesterdayEntry = mems.find((m: any) => m.dateKey === yesterdayStr);
 
     let startDate: Date | null = null;
     if (hasActivity(todayEntry)) startDate = today;
@@ -97,7 +66,7 @@ const Home: React.FC = () => {
       const d = new Date(startDate);
       while (true) {
         const dStr = d.toISOString().split('T')[0];
-        const e = mems.find(m => m.dateKey === dStr);
+        const e = mems.find((m: any) => m.dateKey === dStr);
         if (!hasActivity(e)) break;
         currentStreak++;
         d.setDate(d.getDate() - 1);
@@ -113,24 +82,16 @@ const Home: React.FC = () => {
 
   const handleAddTask = async () => {
     if (!newTask.trim()) return;
-    const newTaskObj: Task = { id: Date.now().toString(), text: newTask.trim(), status: 'empty' };
-
-    // Không chọn ngày riêng: việc được ghi cho đúng ngày đang xem trên thanh
-    // điều hướng ở đầu trang, như trước giờ.
+    const newTaskObj = { id: Date.now().toString(), text: newTask.trim(), status: 'empty' };
     const targetDateKey = scheduleDate ? format(scheduleDate, 'yyyy-MM-dd') : dateKey;
 
     if (targetDateKey === dateKey) {
       handleSaveTasks([...tasks, newTaskObj]);
     } else {
-      // Đặt việc trước cho một ngày trong tương lai — lưu thẳng vào đúng ngày đó,
-      // không đụng đến danh sách của ngày đang xem. Khi người dùng mở app đúng
-      // ngày đó, Home sẽ tự tải tasks của ngày đó (vì dateKey lúc này = ngày đó)
-      // nên việc tự hiện ra, không cần cơ chế thông báo riêng.
       const entry = await memoryService.getByDate(targetDateKey);
       await memoryService.updatePartial(targetDateKey, { tasks: [...entry.tasks, newTaskObj] });
       alert(`Đã đặt việc cho ngày ${format(scheduleDate as Date, 'dd/MM/yyyy')}. Đến ngày đó việc sẽ tự hiện ra ở đây.`);
     }
-
     setNewTask('');
     setScheduleDate(null);
   };
@@ -138,12 +99,6 @@ const Home: React.FC = () => {
   const handleDeleteTask = (id: string) => {
     handleSaveTasks(tasks.filter(t => t.id !== id));
     setConfirmDeleteTask(null);
-  };
-
-  const handleDeleteGoal = async (id: string) => {
-    await goalService.deleteGoal(id);
-    setConfirmDeleteGoal(null);
-    loadData();
   };
 
   const cycleStatus = (id: string) => {
@@ -169,90 +124,10 @@ const Home: React.FC = () => {
     }
   };
 
-  const handleCreateGoal = async () => {
-    const target = parseInt(newGoalTarget);
-    if (!newGoalTitle.trim() || !target || target <= 0) return;
-    await goalService.addGoal(newGoalTitle.trim(), target);
-    setNewGoalTitle('');
-    setNewGoalTarget('');
-    setShowGoalModal(false);
-    loadData();
-  };
-
-  const handleFundGoal = async () => {
-    const amount = parseInt(fundAmount);
-    if (!showFundModal || !amount || amount <= 0) return;
-
-    // Cho phép nạp bằng tiền tích luỹ từ các tháng trước, không chỉ riêng số dư
-    // tháng này — chỉ chặn khi tổng CẢ HAI cộng lại vẫn không đủ, vì đó mới thật
-    // sự là không có tiền (chứ không phải cứ tháng này âm là chặn).
-    const totalAvailable = budgetStatus.currentGlobalBalance + budgetStatus.accumulatedSavings;
-    if (amount > totalAvailable) {
-      setFundError(`Không đủ tiền — tổng số dư hiện có (tháng này + tiết kiệm các tháng trước) chỉ còn ${totalAvailable.toLocaleString('vi-VN')} đ.`);
-      return;
-    }
-
-    setFundError('');
-    await goalService.fundGoal(showFundModal, amount, dateKey);
-    setFundAmount('');
-    setShowFundModal(null);
-    loadData();
-  };
-
-  const handleOpenReview = async () => {
-    const now = new Date();
-    now.setMonth(now.getMonth() - 1);
-    const year = now.getFullYear().toString();
-    const month = (now.getMonth() + 1).toString().padStart(2, '0');
-    const defaultMonth = `${year}-${month}`;
-    setReviewMonth(defaultMonth);
-    await generateMonthlyReview(defaultMonth);
-  };
-
-  const openHallModal = (tab: 'goals' | 'review') => {
-    setHallTab(tab);
-    setShowHallModal(true);
-    if (tab === 'review' && !reviewData) handleOpenReview();
-  };
-
-  const generateMonthlyReview = async (monthStrInput: string) => {
-    const year = monthStrInput.substring(0, 4);
-    const month = monthStrInput.substring(5, 7);
-
-    const stats = await financeService.getDashboardStats(year, month);
-    const trans = await financeService.getTransactionsByMonth(year, month);
-    
-    const catTotals: Record<string, number> = {};
-    trans.filter(t => t.type === 'expense').forEach(t => {
-      catTotals[t.category] = (catTotals[t.category] || 0) + t.amount;
-    });
-    const topCat = Object.keys(catTotals).sort((a, b) => catTotals[b] - catTotals[a])[0];
-
-    const allMemories = await memoryService.getAllLegacy();
-    const lastMonthMemories = Object.values(allMemories).filter(m => m.dateKey.startsWith(`${year}-${month}`));
-    const totalPhotos = lastMonthMemories.reduce((acc, m) => acc + (m.photos?.length || 0), 0);
-    const totalDiaries = lastMonthMemories.filter(m => m.diary && m.diary.trim() !== '').length;
-
-    setReviewData({
-      monthStr: `${month}/${year}`,
-      stats, topCat, topCatAmount: catTotals[topCat] || 0, totalPhotos, totalDiaries
-    });
-  };
-
-  const activeGoals = goals.filter(g => !g.completed);
-  const completedGoals = goals.filter(g => g.completed);
-
-  useAndroidBack(showGoalModal, () => setShowGoalModal(false));
-  useAndroidBack(!!showFundModal, () => setShowFundModal(null));
-  useAndroidBack(showHallModal, () => setShowHallModal(false));
-
-  const goalModalT = useClosingTransition(showGoalModal);
-  const fundModalT = useClosingTransition(!!showFundModal);
-  const hallModalT = useClosingTransition(showHallModal);
+  const doneCount = tasks.filter(t => t.status === 'done').length;
 
   return (
     <div className="page-container" style={{ paddingBottom: '120px' }}>
-      {/* Premium Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px', marginTop: '10px' }}>
         <div>
           <h1 style={{ margin: 0, fontSize: '28px', background: 'linear-gradient(to right, #fff, #a5b4fc)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
@@ -260,87 +135,38 @@ const Home: React.FC = () => {
           </h1>
           <p style={{ margin: '4px 0 0 0', color: 'var(--text-muted)', fontSize: '15px' }}>Sẵn sàng cho một ngày mới?</p>
         </div>
-        <button
-          onClick={() => openHallModal('goals')}
-          style={{ position: 'relative', background: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(10px)', border: '1px solid var(--border-glass)', borderRadius: '50%', width: '44px', height: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ffd700', cursor: 'pointer', boxShadow: '0 4px 15px rgba(0,0,0,0.2)' }}
-          title="Thành tích & Tổng kết"
-        >
-          <Trophy size={20} />
-          {completedGoals.length > 0 && (
-            <span style={{ position: 'absolute', top: '-4px', right: '-4px', background: 'var(--danger)', color: 'white', fontSize: '10px', fontWeight: 'bold', borderRadius: '10px', minWidth: '18px', height: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px' }}>
-              {completedGoals.length}
-            </span>
-          )}
-        </button>
       </div>
 
       <DateNavigator />
 
-      {/* Grid Dashboard */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
-        
-        {/* Streak Widget */}
-        <div className="card glass-panel" style={{ padding: '20px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center', margin: 0 }}>
-          <Flame size={32} color={streak > 0 ? '#ff9f43' : 'var(--text-muted)'} style={{ marginBottom: '8px', filter: streak > 0 ? 'drop-shadow(0 0 10px rgba(255, 159, 67, 0.6))' : 'none' }} />
-          <h3 style={{ margin: 0, fontSize: '24px', color: streak > 0 ? '#fff' : 'var(--text-muted)' }}>{streak}</h3>
-          <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px' }}>Ngày liên tiếp</p>
-        </div>
-
-        {/* Budget Widget */}
-        <div className="card glass-panel" onClick={() => navigate('/expenses')} style={{ padding: '20px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center', margin: 0, background: 'linear-gradient(135deg, rgba(88, 166, 255, 0.1) 0%, rgba(31, 111, 235, 0.2) 100%)', cursor: 'pointer', border: '1px solid rgba(88, 166, 255, 0.2)' }}>
-          <Wallet size={28} color="var(--primary)" style={{ marginBottom: '8px' }} />
-          <h3 style={{ margin: 0, fontSize: '20px', color: '#fff' }}>{safeDailyLimit > 0 ? `${(safeDailyLimit / 1000).toFixed(0)}k` : '0đ'}</h3>
-          <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px' }}>Hạn mức hằng ngày</p>
-        </div>
-
+      {/* Hạn mức chi tiêu hôm nay — thẻ chính, bấm để mở Ví */}
+      <div className="card glass-panel" onClick={() => navigate('/expenses')} style={{ padding: '20px', marginBottom: '16px', background: 'linear-gradient(135deg, rgba(88, 166, 255, 0.1) 0%, rgba(31, 111, 235, 0.2) 100%)', cursor: 'pointer', border: '1px solid rgba(88, 166, 255, 0.2)' }}>
+        <p style={{ margin: '0 0 6px 0', fontSize: '13px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px' }}><Wallet size={16} /> Còn tiêu được hôm nay</p>
+        <h1 style={{ margin: 0, fontSize: '32px' }}>{safeDailyLimit.toLocaleString('vi-VN')} đ</h1>
       </div>
 
-      {/* Goals Widget - Horizontal Scroll */}
-      <div style={{ marginBottom: '24px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-          <h3 style={{ margin: 0, fontSize: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Target size={20} color="var(--primary)" /> Mục tiêu
-          </h3>
-          <button onClick={() => setShowGoalModal(true)} style={{ color: 'var(--primary)', fontWeight: 'bold', fontSize: '14px' }}>+ Thêm</button>
+      {/* Streak + Hũ hoàn thành — chip nhỏ, không còn danh sách mục tiêu ở Home */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
+        <div className="card glass-panel" style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: '12px', margin: 0 }}>
+          <Flame size={26} color={streak > 0 ? '#ff9f43' : 'var(--text-muted)'} style={{ filter: streak > 0 ? 'drop-shadow(0 0 10px rgba(255, 159, 67, 0.6))' : 'none' }} />
+          <div>
+            <h3 style={{ margin: 0, fontSize: '20px' }}>{streak}</h3>
+            <p style={{ margin: 0, fontSize: '11px', color: 'var(--text-muted)' }}>ngày liền</p>
+          </div>
         </div>
-        
-        {activeGoals.length === 0 ? (
-          <div className="card glass-panel" style={{ padding: '20px', textAlign: 'center' }}>
-            <p style={{ margin: 0, fontSize: '14px', color: 'var(--text-muted)' }}>
-              {completedGoals.length > 0 ? 'Tất cả mục tiêu đã hoàn thành! Xem lại ở góc Thành tích nhé 🏆' : 'Bạn chưa có mục tiêu nào. Thêm một cái để có động lực phấn đấu nhé!'}
-            </p>
+        <div className="card glass-panel" onClick={() => navigate('/goals')} style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: '12px', margin: 0, cursor: 'pointer' }}>
+          <PiggyBank size={26} color="var(--primary)" />
+          <div>
+            <h3 style={{ margin: 0, fontSize: '20px' }}>{completedGoalsCount}</h3>
+            <p style={{ margin: 0, fontSize: '11px', color: 'var(--text-muted)' }}>hũ đã đạt</p>
           </div>
-        ) : (
-          <div className="no-scrollbar" style={{ display: 'flex', gap: '16px', overflowX: 'auto', paddingBottom: '10px' }}>
-            {activeGoals.map(goal => {
-              const percent = Math.min((goal.currentAmount / goal.targetAmount) * 100, 100);
-              const isCompleted = percent >= 100;
-              return (
-                <div key={goal.id} className="card glass-panel" style={{ minWidth: '220px', margin: 0, padding: '16px', border: isCompleted ? '1px solid var(--success)' : '1px solid var(--border-glass)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', gap: '8px' }}>
-                    <span style={{ fontWeight: 'bold', fontSize: '15px', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{goal.title}</span>
-                    <span style={{ fontSize: '13px', fontWeight: 'bold', color: isCompleted ? 'var(--success)' : 'var(--primary)' }}>{percent.toFixed(0)}%</span>
-                    <button onClick={() => setConfirmDeleteGoal(goal.id)} style={{ color: '#ff7b72', opacity: 0.7, flexShrink: 0 }}><Trash2 size={15} /></button>
-                  </div>
-                  <div style={{ width: '100%', height: '6px', backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: '3px', overflow: 'hidden', marginBottom: '12px' }}>
-                    <div style={{ width: `${percent}%`, height: '100%', backgroundColor: isCompleted ? 'var(--success)' : 'var(--primary)', transition: 'width 0.5s', boxShadow: '0 0 10px var(--primary)' }}></div>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                    <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{(goal.currentAmount/1000).toFixed(0)}k / {(goal.targetAmount/1000).toFixed(0)}k</span>
-                    <button onClick={() => { setFundError(''); setFundAmount(''); setShowFundModal(goal.id); }} disabled={isCompleted} style={{ background: isCompleted ? 'rgba(255,255,255,0.1)' : 'var(--primary-dark)', borderRadius: '8px', padding: '6px 12px', color: 'white', fontSize: '12px', fontWeight: 'bold' }}>Nạp</button>
-                  </div>
-                  <p style={{ margin: 0, fontSize: '11px', color: 'var(--text-muted)' }}>Tạo lúc {format(new Date(goal.createdAt), 'HH:mm dd/MM/yyyy')}</p>
-                </div>
-              );
-            })}
-          </div>
-        )}
+        </div>
       </div>
 
       {/* Task Widget */}
       <div className="card glass-panel" style={{ padding: '20px', borderRadius: '24px' }}>
         <h4 style={{ margin: '0 0 16px 0', fontSize: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <ClipboardList size={20} color="var(--primary)" /> Việc cần làm
+          <ClipboardList size={20} color="var(--primary)" /> Việc hôm nay {tasks.length > 0 && `(${doneCount}/${tasks.length})`}
         </h4>
         <div style={{ display: 'flex', gap: '10px', marginBottom: scheduleDate ? '8px' : '10px' }}>
           <div className="gemini-input-wrapper" style={{ flex: 1 }}>
@@ -388,44 +214,6 @@ const Home: React.FC = () => {
         </div>
       </div>
 
-      {/* Modals */}
-      {goalModalT.shouldRender && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(10px)', zIndex: 4000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', opacity: goalModalT.active ? 1 : 0, transition: 'opacity 200ms ease' }}>
-          <div className="card glass-panel" style={{ width: '100%', padding: '24px', background: '#14141e', opacity: goalModalT.active ? 1 : 0, transform: goalModalT.active ? 'scale(1)' : 'scale(0.94)', transition: 'opacity 200ms ease, transform 200ms cubic-bezier(0.175, 0.885, 0.32, 1.275)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
-              <h3 style={{ margin: 0 }}>Mục tiêu mới</h3>
-              <button onClick={() => setShowGoalModal(false)}><X size={20} color="white" /></button>
-            </div>
-            <input type="text" placeholder="Ví dụ: Mua iPhone 16" value={newGoalTitle} onChange={e => setNewGoalTitle(e.target.value)} style={{ marginBottom: '15px' }} />
-            <input type="text" inputMode="numeric" placeholder="Số tiền (VNĐ)" value={formatThousands(newGoalTarget)} onChange={e => setNewGoalTarget(stripThousands(e.target.value))} style={{ marginBottom: '24px' }} />
-            <button onClick={handleCreateGoal} className="btn-primary">Bắt đầu tích lũy</button>
-          </div>
-        </div>
-      )}
-
-      {fundModalT.shouldRender && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(10px)', zIndex: 4000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', opacity: fundModalT.active ? 1 : 0, transition: 'opacity 200ms ease' }}>
-          <div className="card glass-panel" style={{ width: '100%', padding: '24px', background: '#14141e', opacity: fundModalT.active ? 1 : 0, transform: fundModalT.active ? 'scale(1)' : 'scale(0.94)', transition: 'opacity 200ms ease, transform 200ms cubic-bezier(0.175, 0.885, 0.32, 1.275)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
-              <h3 style={{ margin: 0 }}>Bỏ ống heo</h3>
-              <button onClick={() => setShowFundModal(null)}><X size={20} color="white" /></button>
-            </div>
-            <input type="text" inputMode="numeric" placeholder="Số tiền nạp (VNĐ)" value={formatThousands(fundAmount)} onChange={e => { setFundAmount(stripThousands(e.target.value)); setFundError(''); }} style={{ marginBottom: fundError ? '10px' : '24px' }} />
-            {fundError && <p style={{ margin: '0 0 16px 0', fontSize: '13px', color: 'var(--danger)', fontWeight: 600 }}>{fundError}</p>}
-            <button onClick={handleFundGoal} className="btn-primary">Nạp tiền</button>
-          </div>
-        </div>
-      )}
-
-      {confirmDeleteGoal && (
-        <ConfirmDialog
-          title="Xoá mục tiêu này?"
-          message="Toàn bộ tiến trình đã nạp cho mục tiêu này sẽ mất, không thể khôi phục."
-          onConfirm={() => handleDeleteGoal(confirmDeleteGoal)}
-          onCancel={() => setConfirmDeleteGoal(null)}
-        />
-      )}
-
       {confirmDeleteTask && (
         <ConfirmDialog
           title="Xoá việc này?"
@@ -442,163 +230,6 @@ const Home: React.FC = () => {
           onDateSelect={(date) => { setScheduleDate(date); setShowScheduleCalendar(false); }}
           onClose={() => setShowScheduleCalendar(false)}
         />
-      )}
-
-      {hallModalT.shouldRender && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'var(--bg-main)', zIndex: 5000, display: 'flex', flexDirection: 'column', overflowY: 'auto', transform: hallModalT.active ? 'translateX(0)' : 'translateX(100%)', transition: 'transform 250ms cubic-bezier(0.32, 0.72, 0, 1)' }}>
-          <div className="liquid-glass" style={{ padding: '20px', backgroundColor: 'rgba(15, 15, 20, 0.8)', display: 'flex', alignItems: 'center', position: 'sticky', top: 0, zIndex: 10 }}>
-            <button onClick={() => setShowHallModal(false)} style={{ marginRight: '15px', color: 'white', background: 'none', border: 'none' }}><ChevronLeft size={24} /></button>
-            <h3 style={{ margin: 0, flex: 1, textAlign: 'center', color: 'white' }}>Thành tích & Tổng kết</h3>
-            <div style={{ width: '24px' }}></div>
-          </div>
-
-          {/* Segmented tab switcher — 1 modal duy nhất, không xổ dropdown */}
-          <div style={{ display: 'flex', gap: '8px', padding: '16px 20px 0' }}>
-            <button
-              onClick={() => setHallTab('goals')}
-              style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '12px', borderRadius: '16px', fontWeight: 700, fontSize: '13px', background: hallTab === 'goals' ? 'var(--gemini-grad)' : 'rgba(255,255,255,0.06)', color: hallTab === 'goals' ? 'white' : 'var(--text-muted)' }}
-            >
-              <Trophy size={16} /> Thành tích
-            </button>
-            <button
-              onClick={() => openHallModal('review')}
-              style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '12px', borderRadius: '16px', fontWeight: 700, fontSize: '13px', background: hallTab === 'review' ? 'var(--gemini-grad)' : 'rgba(255,255,255,0.06)', color: hallTab === 'review' ? 'white' : 'var(--text-muted)' }}
-            >
-              <Award size={16} /> Tổng kết tháng
-            </button>
-          </div>
-
-          {hallTab === 'goals' ? (
-            <div style={{ padding: '20px', paddingBottom: '100px' }}>
-              <div className="card" style={{ background: 'var(--gemini-grad)', backgroundSize: '300% 300%', animation: 'geminiGradient 8s ease infinite', color: 'white', padding: '40px 20px', borderRadius: '30px', textAlign: 'center', marginBottom: '24px', border: 'none' }}>
-                <Trophy size={56} style={{ marginBottom: '16px', filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.3))' }} />
-                <h2 style={{ margin: '0 0 10px 0', fontSize: '28px', textShadow: '0 2px 4px rgba(0,0,0,0.3)' }}>Rất xuất sắc!</h2>
-                <p style={{ margin: 0, opacity: 0.9, fontSize: '16px' }}>
-                  Bạn đã hoàn thành <strong>{completedGoals.length}</strong> mục tiêu
-                </p>
-              </div>
-
-              {completedGoals.length === 0 ? (
-                <div className="card glass-panel" style={{ padding: '20px', textAlign: 'center' }}>
-                  <p style={{ margin: 0, fontSize: '14px', color: 'var(--text-muted)' }}>Chưa có mục tiêu nào hoàn thành. Cố lên nhé!</p>
-                </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                  {completedGoals.map(goal => (
-                    <div key={goal.id} className="card glass-panel" style={{ padding: '18px', borderRadius: '18px', border: '1px solid var(--success)' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                        <span style={{ fontWeight: 'bold', fontSize: '16px' }}>{goal.title}</span>
-                        <span style={{ color: 'var(--success)', fontWeight: 'bold' }}>✓ Hoàn thành</span>
-                      </div>
-                      <p style={{ margin: '0 0 4px 0', fontSize: '13px', color: 'var(--text-muted)' }}>
-                        Đạt {(goal.targetAmount / 1000).toFixed(0)}k
-                      </p>
-                      <p style={{ margin: 0, fontSize: '11px', color: 'var(--text-muted)' }}>
-                        Tạo lúc {format(new Date(goal.createdAt), 'HH:mm dd/MM/yyyy')}
-                        {goal.completedAt && ` • Hoàn thành lúc ${format(new Date(goal.completedAt), 'HH:mm dd/MM/yyyy')}`}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              <button onClick={() => setShowHallModal(false)} className="btn-primary" style={{ width: '100%', padding: '18px', marginTop: '24px' }}>Trở về Home</button>
-            </div>
-          ) : reviewData && (
-            <div style={{ padding: '20px', paddingBottom: '100px' }}>
-              <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', marginBottom: '20px' }}>
-                <button
-                  onClick={() => setShowReviewMonthPicker(true)}
-                  style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '10px 16px', borderRadius: 'var(--radius-full)', background: 'rgba(255,255,255,0.06)', border: '1px solid var(--border-glass)', color: 'var(--text-main)', fontSize: '13px', fontWeight: 700 }}
-                >
-                  Tháng {reviewMonth.substring(5, 7)} <ChevronDown size={14} />
-                </button>
-                <button
-                  onClick={() => setShowReviewYearPicker(true)}
-                  style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '10px 16px', borderRadius: 'var(--radius-full)', background: 'rgba(255,255,255,0.06)', border: '1px solid var(--border-glass)', color: 'var(--text-main)', fontSize: '13px', fontWeight: 700 }}
-                >
-                  Năm {reviewMonth.substring(0, 4)} <ChevronDown size={14} />
-                </button>
-              </div>
-
-              {showReviewMonthPicker && (
-                <RoundedPicker
-                  title="Chọn tháng"
-                  options={REVIEW_MONTH_OPTIONS}
-                  value={reviewMonth.substring(5, 7)}
-                  onChange={(m) => {
-                    const newMonth = `${reviewMonth.substring(0, 4)}-${m}`;
-                    setReviewMonth(newMonth);
-                    generateMonthlyReview(newMonth);
-                  }}
-                  onClose={() => setShowReviewMonthPicker(false)}
-                />
-              )}
-              {showReviewYearPicker && (
-                <RoundedPicker
-                  title="Chọn năm"
-                  options={REVIEW_YEAR_OPTIONS}
-                  value={reviewMonth.substring(0, 4)}
-                  onChange={(y) => {
-                    const newMonth = `${y}-${reviewMonth.substring(5, 7)}`;
-                    setReviewMonth(newMonth);
-                    generateMonthlyReview(newMonth);
-                  }}
-                  onClose={() => setShowReviewYearPicker(false)}
-                />
-              )}
-
-              <div className="card" style={{ background: 'var(--gemini-grad)', backgroundSize: '300% 300%', animation: 'geminiGradient 8s ease infinite', color: 'white', padding: '40px 20px', borderRadius: '30px', textAlign: 'center', marginBottom: '24px', border: 'none' }}>
-                <Award size={56} style={{ marginBottom: '16px', filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.3))' }} />
-                <h2 style={{ margin: '0 0 10px 0', fontSize: '28px', textShadow: '0 2px 4px rgba(0,0,0,0.3)' }}>Rất xuất sắc!</h2>
-                <p style={{ margin: 0, opacity: 0.9, fontSize: '16px' }}>Tỷ lệ tiết kiệm đạt <strong>{reviewData.stats.savingsRate}%</strong></p>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
-                <div className="card glass-panel" style={{ padding: '20px', textAlign: 'center', margin: 0 }}>
-                  <TrendingUp color="var(--success)" size={28} style={{ marginBottom: '12px' }} />
-                  <p style={{ margin: '0 0 8px 0', fontSize: '13px', color: 'var(--text-muted)' }}>Tổng Thu Nhập</p>
-                  <h4 style={{ margin: 0, fontSize: '18px' }}>{(reviewData.stats.totalIncome/1000).toFixed(0)}k</h4>
-                </div>
-                <div className="card glass-panel" style={{ padding: '20px', textAlign: 'center', margin: 0 }}>
-                  <TrendingDown color="var(--danger)" size={28} style={{ marginBottom: '12px' }} />
-                  <p style={{ margin: '0 0 8px 0', fontSize: '13px', color: 'var(--text-muted)' }}>Tổng Chi Tiêu</p>
-                  <h4 style={{ margin: 0, fontSize: '18px' }}>{(reviewData.stats.totalExpense/1000).toFixed(0)}k</h4>
-                </div>
-              </div>
-
-              <div className="card glass-panel" style={{ padding: '24px', borderRadius: '24px', marginBottom: '24px' }}>
-                <h4 style={{ margin: '0 0 16px 0', color: 'var(--text-muted)', fontSize: '14px', textTransform: 'uppercase', letterSpacing: '1px' }}>Hố đen tài chính</h4>
-                {reviewData.topCat ? (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: '18px', fontWeight: 'bold' }}>{reviewData.topCat}</span>
-                    <span style={{ color: 'var(--danger)', fontWeight: 'bold', fontSize: '18px' }}>{(reviewData.topCatAmount/1000).toFixed(0)}k</span>
-                  </div>
-                ) : (
-                  <p style={{ margin: 0, fontSize: '14px', color: 'var(--text-muted)' }}>Không có chi tiêu nào.</p>
-                )}
-              </div>
-
-              <div className="card glass-panel" style={{ padding: '24px', borderRadius: '24px', marginBottom: '24px' }}>
-                <h4 style={{ margin: '0 0 20px 0', color: 'var(--text-muted)', fontSize: '14px', textTransform: 'uppercase', letterSpacing: '1px' }}>Kỷ niệm đã lưu</h4>
-                <div style={{ display: 'flex', justifyContent: 'space-around' }}>
-                  <div style={{ textAlign: 'center' }}>
-                    <ImageIcon size={32} color="var(--primary)" style={{ marginBottom: '12px' }} />
-                    <h3 style={{ margin: 0, fontSize: '24px' }}>{reviewData.totalPhotos}</h3>
-                    <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: 'var(--text-muted)' }}>Bức ảnh</p>
-                  </div>
-                  <div style={{ textAlign: 'center' }}>
-                    <BookOpen size={32} color="var(--secondary)" style={{ marginBottom: '12px' }} />
-                    <h3 style={{ margin: 0, fontSize: '24px' }}>{reviewData.totalDiaries}</h3>
-                    <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: 'var(--text-muted)' }}>Trang nhật ký</p>
-                  </div>
-                </div>
-              </div>
-
-              <button onClick={() => setShowHallModal(false)} className="btn-primary" style={{ padding: '18px' }}>Trở về Home</button>
-            </div>
-          )}
-        </div>
       )}
     </div>
   );
