@@ -7,12 +7,14 @@ import Home from './pages/Home';
 import { DateProvider } from './contexts/DateContext';
 import { migrateDataToDexie } from './utils/migrate';
 import { lockService } from './services/lockService';
+import { financeService } from './services/financeService';
 import BackButtonHandler from './components/BackButtonHandler';
 
 const Diary = lazy(() => import('./pages/Diary'));
 const Expenses = lazy(() => import('./pages/Expenses'));
 const Memory = lazy(() => import('./pages/Memory'));
 const Goals = lazy(() => import('./pages/Goals'));
+const Settings = lazy(() => import('./pages/Settings'));
 
 const App: React.FC = () => {
   const [checkingLock, setCheckingLock] = useState(true);
@@ -24,6 +26,13 @@ const App: React.FC = () => {
       const enabled = await lockService.isEnabled();
       setLocked(enabled);
       setCheckingLock(false);
+      const t = await financeService.getSetting<'dark' | 'light'>('theme', 'dark');
+      document.documentElement.setAttribute('data-theme', t);
+      const fs = await financeService.getSetting<number>('fontScale', 100);
+      setTimeout(() => {
+        const el = document.querySelector('.content-area') as HTMLElement | null;
+        if (el) (el.style as any).zoom = `${fs}%`;
+      }, 0);
     })();
   }, []);
 
@@ -56,6 +65,7 @@ const App: React.FC = () => {
                 <Route path="/expenses" element={<Expenses />} />
                 <Route path="/memory" element={<Memory />} />
                 <Route path="/goals" element={<Goals />} />
+                <Route path="/settings" element={<Settings />} />
               </Routes>
             </Suspense>
           </div>
