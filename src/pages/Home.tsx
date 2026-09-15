@@ -6,7 +6,7 @@ import { financeService } from '../services/financeService';
 import DateNavigator from '../components/DateNavigator';
 import ConfirmDialog from '../components/ConfirmDialog';
 import CustomCalendar from '../components/CustomCalendar';
-import { Plus, Trash2, ClipboardList, Flame, Wallet, PiggyBank, CalendarClock, X } from 'lucide-react';
+import { Plus, Trash2, ClipboardList, Flame, Wallet, PiggyBank, CalendarClock, X, Settings as SettingsIcon } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 
@@ -135,6 +135,9 @@ const Home: React.FC = () => {
           </h1>
           <p style={{ margin: '4px 0 0 0', color: 'var(--text-muted)', fontSize: '15px' }}>Sẵn sàng cho một ngày mới?</p>
         </div>
+        <button onClick={() => navigate('/settings')} style={{ background: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(10px)', border: '1px solid var(--border-glass)', borderRadius: '50%', width: '44px', height: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-main)' }}>
+          <SettingsIcon size={20} />
+        </button>
       </div>
 
       <DateNavigator />
