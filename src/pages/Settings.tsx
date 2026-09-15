@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { financeService } from '../services/financeService';
 import { lockService } from '../services/lockService';
+import { notificationService } from '../services/notificationService';
 import { ChevronLeft, Sun, Moon, Fingerprint, Bell, Type } from 'lucide-react';
 
 const Settings: React.FC = () => {
@@ -12,6 +13,7 @@ const Settings: React.FC = () => {
   const [showPinSetup, setShowPinSetup] = useState(false);
   const [pinInput, setPinInput] = useState('');
   const [reminderTime, setReminderTime] = useState('21:00');
+  const [streakWarnTime, setStreakWarnTime] = useState('20:00');
 
   useEffect(() => { load(); }, []);
 
@@ -23,6 +25,8 @@ const Settings: React.FC = () => {
     setLockEnabled(await lockService.isEnabled());
     const rt = await financeService.getSetting<string>('diaryReminderTime', '21:00');
     setReminderTime(rt);
+    const sw = await financeService.getSetting<string>('streakWarnTime', '20:00');
+    setStreakWarnTime(sw);
   };
 
   const applyTheme = async (t: 'dark' | 'light') => {
@@ -59,6 +63,13 @@ const Settings: React.FC = () => {
   const saveReminderTime = async (v: string) => {
     setReminderTime(v);
     await financeService.setSetting('diaryReminderTime', v);
+    await notificationService.scheduleDiaryReminder(v);
+  };
+
+  const saveStreakWarnTime = async (v: string) => {
+    setStreakWarnTime(v);
+    await financeService.setSetting('streakWarnTime', v);
+    await notificationService.scheduleStreakWarning(v);
   };
 
   return (
@@ -98,9 +109,16 @@ const Settings: React.FC = () => {
         <p style={{ margin: '10px 0 0 0', fontSize: '12px', color: 'var(--text-muted)' }}>Máy có cảm biến vân tay sẽ thử mở bằng vân tay trước, không được thì nhập PIN 6 số.</p>
       </div>
 
-      <div className="card glass-panel" style={{ padding: '20px', borderRadius: '20px' }}>
+      <div className="card glass-panel" style={{ padding: '20px', borderRadius: '20px', marginBottom: '20px' }}>
         <h4 style={{ margin: '0 0 14px 0', fontSize: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}><Bell size={18} color="var(--primary)" /> Nhắc viết nhật ký</h4>
         <input type="time" value={reminderTime} onChange={(e) => saveReminderTime(e.target.value)} style={{ width: 'auto' }} />
+        <p style={{ margin: '10px 0 0 0', fontSize: '12px', color: 'var(--text-muted)' }}>Thông báo lặp lại mỗi ngày đúng giờ này.</p>
+      </div>
+
+      <div className="card glass-panel" style={{ padding: '20px', borderRadius: '20px' }}>
+        <h4 style={{ margin: '0 0 14px 0', fontSize: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}><Bell size={18} color="var(--danger)" /> Cảnh báo mất chuỗi</h4>
+        <input type="time" value={streakWarnTime} onChange={(e) => saveStreakWarnTime(e.target.value)} style={{ width: 'auto' }} />
+        <p style={{ margin: '10px 0 0 0', fontSize: '12px', color: 'var(--text-muted)' }}>Nếu đến giờ này mà hôm nay chưa ghi gì, app sẽ nhắc để bạn không mất chuỗi ngày liên tiếp.</p>
       </div>
 
       {showPinSetup && (
