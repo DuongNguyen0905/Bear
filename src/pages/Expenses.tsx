@@ -23,6 +23,7 @@ const Expenses: React.FC = () => {
   const [desc, setDesc] = useState('');
   const [category, setCategory] = useState('');
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
+  const [showKeypad, setShowKeypad] = useState(false);
 
   const [expenseCategories, setExpenseCategories] = useState<string[]>(['Ăn uống', 'Giải trí', 'Di chuyển', 'Mua sắm', 'Đau ốm', 'Tiền trọ']);
   // Không có "Lương" ở đây — lương hàng tháng ghi riêng qua ô "Lương tháng
@@ -384,8 +385,9 @@ const Expenses: React.FC = () => {
               inputMode="numeric"
               placeholder="Số tiền"
               value={formatThousands(amount)}
-              onChange={(e) => setAmount(stripThousands(e.target.value))}
-              style={{ flex: 1, padding: '16px', borderRadius: '14px', border: 'none', fontSize: '16px', fontWeight: 'bold' }}
+              readOnly
+              onClick={() => setShowKeypad(true)}
+              style={{ flex: 1, padding: '16px', borderRadius: '14px', border: 'none', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' }}
             />
             {activeTab === 'expense' && (
               <>
@@ -728,6 +730,47 @@ const Expenses: React.FC = () => {
               <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '14px', marginTop: '30px' }}>Chưa có dữ liệu tích lũy từ các tháng trước.</p>
             )}
           </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bàn phím số toàn màn hình — chạm ô "Số tiền" mở lên đây thay vì gõ
+          trực tiếp, để nhập nhanh và không bị bàn phím hệ thống che form. */}
+      {showKeypad && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'var(--bg-main)', zIndex: 5000, display: 'flex', flexDirection: 'column', animation: 'fadeIn 200ms ease-out' }}>
+          <div style={{ padding: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '15px', fontWeight: 700, color: activeTab === 'expense' ? 'var(--danger)' : 'var(--success)' }}>
+              {activeTab === 'expense' ? 'Khoản chi' : 'Khoản thu'}
+            </span>
+            <button onClick={() => setShowKeypad(false)} style={{ color: 'var(--text-muted)', fontSize: '14px', fontWeight: 700 }}>Đóng</button>
+          </div>
+
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <h1 style={{ margin: 0, fontSize: '42px', color: amount ? 'var(--text-main)' : 'var(--text-muted)' }}>
+              {amount ? formatThousands(amount) : '0'} <span style={{ fontSize: '22px', color: 'var(--text-muted)' }}>đ</span>
+            </h1>
+          </div>
+
+          <div style={{ padding: '0 16px 16px', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+            {['1','2','3','4','5','6','7','8','9','000','0','⌫'].map((k) => (
+              <button
+                key={k}
+                onClick={() => {
+                  if (k === '⌫') setAmount(a => a.slice(0, -1));
+                  else setAmount(a => (a + k).slice(0, 12));
+                }}
+                className="card glass-panel"
+                style={{ margin: 0, padding: '20px 0', fontSize: '22px', fontWeight: 700, textAlign: 'center', borderRadius: '16px' }}
+              >
+                {k}
+              </button>
+            ))}
+          </div>
+
+          <div style={{ padding: '0 16px 24px' }}>
+            <button onClick={() => setShowKeypad(false)} className="btn-primary" style={{ width: '100%', padding: '16px', borderRadius: '16px' }} disabled={!(parseInt(amount) > 0)}>
+              Xong
+            </button>
           </div>
         </div>
       )}
