@@ -578,11 +578,12 @@ const Expenses: React.FC = () => {
           <div style={{ flex: 1, padding: '20px', overflowY: 'auto' }}>
             <div className="card glass-panel" style={{ padding: '20px', borderRadius: '16px', marginBottom: '30px' }}>
               <h4 style={{ margin: '0 0 15px 0', color: 'var(--text-main)' }}>Dữ liệu ứng dụng</h4>
-              <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '15px' }}>Vì ứng dụng chạy offline, bạn nên thường xuyên sao lưu dữ liệu về máy để tránh mất mát khi đổi điện thoại/trình duyệt.</p>
+              <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '10px' }}>Vì ứng dụng chạy offline, bạn nên thường xuyên sao lưu dữ liệu để tránh mất mát khi đổi điện thoại.</p>
+              <p style={{ fontSize: '12px', color: 'var(--primary)', marginBottom: '15px', fontWeight: 600 }}>💡 Dùng chung 1 tài khoản trên 2 máy: bấm "Lưu lên Drive" → khi bảng chia sẻ hiện ra, chọn biểu tượng <strong>Drive</strong> — file tự lưu vào Google Drive của tài khoản đang đăng nhập. Sang máy kia, đăng nhập cùng tài khoản đó trong app Drive, tải file về rồi bấm "Khôi Phục".</p>
               
               <div style={{ display: 'flex', gap: '10px', marginBottom: (localBackupMessage || restoreMessage) ? '10px' : 0 }}>
                 <button disabled={localBackupBusy} onClick={handleBackup} className="btn-primary" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '12px', borderRadius: '10px', background: 'rgba(255,255,255,0.1)', color: 'var(--primary)', border: '1px solid var(--border-glass)', opacity: localBackupBusy ? 0.6 : 1 }}>
-                  <Download size={18} /> {localBackupBusy ? 'Đang lưu...' : 'Tải Sao Lưu'}
+                  <Download size={18} /> {localBackupBusy ? 'Đang lưu...' : 'Lưu lên Drive'}
                 </button>
                 <input
                   type="file" accept=".json"
