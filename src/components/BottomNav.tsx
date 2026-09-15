@@ -1,13 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Home, Camera, BookHeart, PenLine, Receipt, X } from 'lucide-react';
+import { Home, Camera, PiggyBank, PenLine, Receipt, X } from 'lucide-react';
 import './BottomNav.css';
 import { useDate } from '../contexts/DateContext';
 import { memoryService } from '../services/memoryService';
 import { useAndroidBack } from '../hooks/useAndroidBack';
 import { useClosingTransition } from '../hooks/useClosingTransition';
 
-// Mặc định luôn dùng bộ lọc "Đậm đà" cho ảnh chụp, không cần người dùng chọn lại.
 const VIVID_FILTER = 'saturate(2) contrast(1.2)';
 
 const BottomNav: React.FC = () => {
@@ -21,8 +20,6 @@ const BottomNav: React.FC = () => {
   const [isSavingPhoto, setIsSavingPhoto] = useState(false);
   const editorT = useClosingTransition(!!editingPhoto);
 
-  // Giữ lại ảnh vừa chụp trong lúc màn hình đang mờ dần đi để đóng, tránh
-  // ảnh biến mất trắng trơn giữa chừng animation (editingPhoto đã về null).
   useEffect(() => {
     if (editingPhoto) setLastPhoto(editingPhoto);
   }, [editingPhoto]);
@@ -31,20 +28,16 @@ const BottomNav: React.FC = () => {
 
   const handleCameraClick = (e: React.MouseEvent) => {
     e.preventDefault();
-    if (fileInputRef.current) {
-      fileInputRef.current.click();
-    }
+    if (fileInputRef.current) fileInputRef.current.click();
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
     const reader = new FileReader();
     reader.onload = (event) => {
       setEditingPhoto(event.target?.result as string);
       setCaption('');
-      // Đưa con trỏ vào ô chú thích luôn để chỉ cần gõ chữ rồi Enter là lưu.
       setTimeout(() => captionInputRef.current?.focus(), 350);
     };
     reader.readAsDataURL(file);
@@ -58,7 +51,6 @@ const BottomNav: React.FC = () => {
 
   const saveFilteredPhoto = () => {
     if (!editingPhoto) return;
-
     setIsSavingPhoto(true);
     const img = new Image();
     img.onload = async () => {
@@ -66,27 +58,16 @@ const BottomNav: React.FC = () => {
       canvas.width = img.width;
       canvas.height = img.height;
       const ctx = canvas.getContext('2d');
-
       if (ctx) {
-        // Chỉ áp dụng bộ lọc màu lên ảnh, KHÔNG vẽ chữ chú thích lên canvas
-        // để caption luôn là dữ liệu văn bản riêng, hiển thị bên dưới ảnh.
         ctx.filter = VIVID_FILTER;
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
         const finalImageUrl = canvas.toDataURL('image/jpeg', 0.9);
-
         try {
           const entry = await memoryService.getByDate(dateKey);
           const currentPhotos = entry.photos || [];
-
           const now = new Date();
           const fullDate = `Ngày ${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()} lúc ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-
-          const newPhotoData = {
-            url: finalImageUrl,
-            time: fullDate,
-            caption: caption.trim()
-          };
-
+          const newPhotoData = { url: finalImageUrl, time: fullDate, caption: caption.trim() };
           await memoryService.updatePartial(dateKey, { photos: [newPhotoData, ...currentPhotos] });
         } catch (err) {
           console.error('Error saving photo:', err);
@@ -108,11 +89,9 @@ const BottomNav: React.FC = () => {
             <h3 style={{ margin: 0, color: 'white' }}>Khoảnh khắc này</h3>
             <div style={{ width: '36px' }} />
           </div>
-
           <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', padding: '20px 20px 0' }}>
             <img src={lastPhoto ?? undefined} alt="Preview" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', filter: VIVID_FILTER, borderRadius: '24px', boxShadow: '0 10px 40px rgba(0,0,0,0.5)' }} />
           </div>
-
           <div style={{ flexShrink: 0, padding: '16px 20px', background: 'rgba(0,0,0,0.5)' }}>
             <div className="gemini-input-wrapper" style={{ marginBottom: '14px' }}>
               <input
@@ -125,7 +104,6 @@ const BottomNav: React.FC = () => {
                 style={{ width: '100%', padding: '14px 18px', borderRadius: '18px', border: 'none', backgroundColor: 'rgba(255,255,255,0.08)', color: 'white' }}
               />
             </div>
-
             <button onClick={saveFilteredPhoto} disabled={isSavingPhoto} className="btn-primary" style={{ width: '100%', padding: '14px', borderRadius: '18px' }}>
               {isSavingPhoto ? '⏳ Đang lưu...' : 'Lưu vào Kỷ niệm'}
             </button>
@@ -140,8 +118,8 @@ const BottomNav: React.FC = () => {
           <div className="icon-container"><Home size={24} strokeWidth={2.5} /></div>
         </NavLink>
 
-        <NavLink to="/memory" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} title="Kỷ niệm">
-          <div className="icon-container"><BookHeart size={24} strokeWidth={2.5} /></div>
+        <NavLink to="/goals" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} title="Hũ tiết kiệm">
+          <div className="icon-container"><PiggyBank size={24} strokeWidth={2.5} /></div>
         </NavLink>
 
         <button onClick={handleCameraClick} className="nav-item-center" title="Chụp ảnh">
