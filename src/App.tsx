@@ -9,6 +9,7 @@ import BackButtonHandler from './components/BackButtonHandler';
 
 const Diary = lazy(() => import('./pages/Diary'));
 const Expenses = lazy(() => import('./pages/Expenses'));
+const Memory = lazy(() => import('./pages/Memory'));
 const Goals = lazy(() => import('./pages/Goals'));
 
 const App: React.FC = () => {
@@ -40,6 +41,7 @@ const App: React.FC = () => {
                 <Route path="/" element={<Home />} />
                 <Route path="/diary" element={<Diary />} />
                 <Route path="/expenses" element={<Expenses />} />
+                <Route path="/memory" element={<Memory />} />
                 <Route path="/goals" element={<Goals />} />
               </Routes>
             </Suspense>
