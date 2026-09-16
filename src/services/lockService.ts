@@ -1,4 +1,6 @@
 import { db } from '../utils/db';
+import { Capacitor } from '@capacitor/core';
+import { NativeBiometric } from 'capacitor-native-biometric';
 
 export const lockService = {
   async isEnabled(): Promise<boolean> {
@@ -19,24 +21,36 @@ export const lockService = {
     const stored = await this.getPin();
     return stored !== null && stored === pin;
   },
-  // Thử mở bằng vân tay/khuôn mặt qua WebAuthn (platform authenticator) —
-  // hoạt động trên máy có cảm biến và hệ điều hành hỗ trợ; nếu không hỗ trợ
-  // hoặc người dùng huỷ, trả về false để màn hình khoá tự chuyển sang PIN,
-  // không có lỗi hiển thị ra ngoài.
-  async tryBiometric(): Promise<boolean> {
+
+  // Máy có hỗ trợ vân tay/khuôn mặt hay không. Trên web (không phải app
+  // Android) luôn trả false để màn khoá chỉ hiện PIN, không hiện nút vân tay
+  // vô dụng.
+  async isBiometricAvailable(): Promise<boolean> {
+    if (!Capacitor.isNativePlatform()) return false;
     try {
-      if (!window.PublicKeyCredential) return false;
-      const available = await (window.PublicKeyCredential as any).isUserVerifyingPlatformAuthenticatorAvailable?.();
-      if (!available) return false;
-      const challenge = crypto.getRandomValues(new Uint8Array(32));
-      const cred = await navigator.credentials.get({
-        publicKey: {
-          challenge,
-          userVerification: 'required',
-          timeout: 30000,
-        } as any
+      const res = await NativeBiometric.isAvailable({ useFallback: true });
+      return !!res.isAvailable;
+    } catch {
+      return false;
+    }
+  },
+
+  // Mở bằng vân tay qua plugin native (BiometricPrompt của Android). WebAuthn
+  // không dùng được trong WebView của Capacitor nên phải đi đường này.
+  async tryBiometric(): Promise<boolean> {
+    if (!Capacitor.isNativePlatform()) return false;
+    try {
+      const avail = await NativeBiometric.isAvailable({ useFallback: true });
+      if (!avail.isAvailable) return false;
+      await NativeBiometric.verifyIdentity({
+        reason: 'Mở sổ tay của bạn',
+        title: 'Xác thực',
+        subtitle: 'Dùng vân tay hoặc khuôn mặt đã lưu trên máy',
+        description: '',
+        useFallback: true,
+        maxAttempts: 3,
       });
-      return !!cred;
+      return true;
     } catch {
       return false;
     }
