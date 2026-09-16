@@ -37,8 +37,7 @@ const Settings: React.FC = () => {
 
   const applyFontScale = async (v: number) => {
     setFontScale(v);
-    const el = document.querySelector('.content-area') as HTMLElement | null;
-    if (el) (el.style as any).zoom = `${v}%`;
+    (document.documentElement.style as any).zoom = `${v}%`;
     await financeService.setSetting('fontScale', v);
   };
 
