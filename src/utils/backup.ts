@@ -4,6 +4,69 @@ import { Share } from '@capacitor/share';
 import { db } from './db';
 import type { MemoryEntry, Transaction, Goal, Setting, Photo, Emotion } from './db';
 
+// Thư mục cố định dùng cho tính năng tự sao lưu: một app đồng bộ (Autosync
+// for Google Drive, FolderSync, Solid Explorer Cloud...) trỏ vào đúng thư mục
+// Documents/SoTayBackup trên CẢ HAI máy, đồng bộ qua cùng một tài khoản Drive
+// — app này chỉ cần ghi/đọc đúng 1 file cố định tại đây, không tự nói chuyện
+// với Google Drive (không cần OAuth).
+const AUTO_BACKUP_DIR = 'SoTayBackup';
+const AUTO_BACKUP_FILE = 'SoTay_AutoBackup.json';
+const AUTO_BACKUP_PATH = `${AUTO_BACKUP_DIR}/${AUTO_BACKUP_FILE}`;
+
+async function buildBackupJson(): Promise<{ json: string; timestamp: number }> {
+  const memories = await db.memories.toArray();
+  const transactions = await db.transactions.toArray();
+  const goals = await db.goals.toArray();
+  const settings = await db.settings.toArray();
+  const timestamp = Date.now();
+  const backupData = {
+    version: '2.0.0',
+    timestamp,
+    data: { memories, transactions, goals, settings }
+  };
+  return { json: JSON.stringify(backupData), timestamp };
+}
+
+// Ghi từng phần nhỏ qua cầu nối JS↔native — cùng lý do đã ghi ở exportDexieBackup:
+// một lệnh writeFile khổng lồ (dữ liệu có ảnh base64) từng làm app văng trên máy thật.
+async function writeFileChunked(path: string, directory: Directory, json: string): Promise<void> {
+  const CHUNK_SIZE = 1_000_000;
+  await Filesystem.mkdir({ path: AUTO_BACKUP_DIR, directory, recursive: true }).catch(() => {});
+  await Filesystem.writeFile({ path, data: json.slice(0, CHUNK_SIZE), directory, encoding: Encoding.UTF8 });
+  for (let offset = CHUNK_SIZE; offset < json.length; offset += CHUNK_SIZE) {
+    await Filesystem.appendFile({ path, data: json.slice(offset, offset + CHUNK_SIZE), directory, encoding: Encoding.UTF8 });
+  }
+}
+
+// Ghi thầm lặng (không mở hộp thoại chia sẻ) vào file cố định — gọi mỗi khi
+// app xuống nền, để app đồng bộ ngoài phát hiện file đổi và tự đẩy lên Drive.
+export const writeAutoBackup = async (): Promise<number | null> => {
+  if (!Capacitor.isNativePlatform()) return null; // trên web không có thư mục thật để ghi
+  try {
+    const { json, timestamp } = await buildBackupJson();
+    await writeFileChunked(AUTO_BACKUP_PATH, Directory.Documents, json);
+    return timestamp;
+  } catch (err) {
+    console.error('Lỗi tự sao lưu:', err);
+    return null;
+  }
+};
+
+// Đọc file tự-sao-lưu hiện có (nếu có) và trả về nội dung + mốc thời gian ghi
+// — dùng để so sánh xem bản trên thư mục đồng bộ có mới hơn bản đã thấy gần
+// nhất trên máy này không (tức là đến từ máy kia) trước khi hỏi người dùng.
+export const readAutoBackup = async (): Promise<{ json: string; timestamp: number } | null> => {
+  if (!Capacitor.isNativePlatform()) return null;
+  try {
+    const result = await Filesystem.readFile({ path: AUTO_BACKUP_PATH, directory: Directory.Documents, encoding: Encoding.UTF8 });
+    const json = result.data as string;
+    const parsed = JSON.parse(json);
+    return { json, timestamp: parsed.timestamp || 0 };
+  } catch {
+    return null; // chưa từng có file, hoặc chưa cấu hình thư mục đồng bộ
+  }
+};
+
 export const exportDexieBackup = async (): Promise<boolean> => {
   try {
     const memories = await db.memories.toArray();
@@ -163,14 +226,7 @@ function mergeSettings(local: Setting[], incoming: Setting[]): Setting[] {
   return merged;
 }
 
-export const importDexieBackup = async (file: File): Promise<void> => {
-  const jsonString: string = await new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = (e) => resolve(e.target?.result as string);
-    reader.onerror = () => reject(reader.error || new Error('Lỗi đọc file!'));
-    reader.readAsText(file);
-  });
-
+export const importDexieBackupFromString = async (jsonString: string): Promise<void> => {
   const backupData = JSON.parse(jsonString);
 
   let incomingMemories: MemoryEntry[] = [];
@@ -244,4 +300,14 @@ export const importDexieBackup = async (file: File): Promise<void> => {
       await db.settings.bulkPut(mergeSettings(localSettings, incomingSettings));
     }
   });
+};
+
+export const importDexieBackup = async (file: File): Promise<void> => {
+  const jsonString: string = await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => resolve(e.target?.result as string);
+    reader.onerror = () => reject(reader.error || new Error('Lỗi đọc file!'));
+    reader.readAsText(file);
+  });
+  await importDexieBackupFromString(jsonString);
 };
