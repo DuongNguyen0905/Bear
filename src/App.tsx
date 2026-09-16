@@ -1,6 +1,7 @@
 import React, { useEffect, useState, Suspense, lazy } from 'react';
 import { HashRouter as Router, Routes, Route } from 'react-router-dom';
 import { Keyboard } from '@capacitor/keyboard';
+import { App as CapApp } from '@capacitor/app';
 import BottomNav from './components/BottomNav';
 import LockScreen from './components/LockScreen';
 import Home from './pages/Home';
@@ -29,11 +30,16 @@ const App: React.FC = () => {
       const t = await financeService.getSetting<'dark' | 'light'>('theme', 'dark');
       document.documentElement.setAttribute('data-theme', t);
       const fs = await financeService.getSetting<number>('fontScale', 100);
-      setTimeout(() => {
-        const el = document.querySelector('.content-area') as HTMLElement | null;
-        if (el) (el.style as any).zoom = `${fs}%`;
-      }, 0);
+      (document.documentElement.style as any).zoom = `${fs}%`;
     })();
+  }, []);
+
+  // Khoá lại khi app bị đưa xuống nền rồi mở lại (bấm Home, chuyển app...).
+  useEffect(() => {
+    const handle = CapApp.addListener('appStateChange', async ({ isActive }) => {
+      if (!isActive && await lockService.isEnabled()) setLocked(true);
+    });
+    return () => { handle.then((h) => h.remove()); };
   }, []);
 
   useEffect(() => {
