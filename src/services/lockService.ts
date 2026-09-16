@@ -1,6 +1,6 @@
 import { db } from '../utils/db';
 import { Capacitor } from '@capacitor/core';
-import { NativeBiometric } from 'capacitor-native-biometric';
+import { BiometricAuth } from '@aparajita/capacitor-biometric-auth';
 
 export const lockService = {
   async isEnabled(): Promise<boolean> {
@@ -22,33 +22,31 @@ export const lockService = {
     return stored !== null && stored === pin;
   },
 
-  // Máy có hỗ trợ vân tay/khuôn mặt hay không. Trên web (không phải app
-  // Android) luôn trả false để màn khoá chỉ hiện PIN, không hiện nút vân tay
-  // vô dụng.
+  // Máy có vân tay/khuôn mặt đã đăng ký hay không. Trên bản web (không phải
+  // app Android) luôn false để màn khoá chỉ hiện PIN.
   async isBiometricAvailable(): Promise<boolean> {
     if (!Capacitor.isNativePlatform()) return false;
     try {
-      const res = await NativeBiometric.isAvailable({ useFallback: true });
-      return !!res.isAvailable;
+      const info = await BiometricAuth.checkBiometry();
+      return !!info.isAvailable;
     } catch {
       return false;
     }
   },
 
-  // Mở bằng vân tay qua plugin native (BiometricPrompt của Android). WebAuthn
-  // không dùng được trong WebView của Capacitor nên phải đi đường này.
+  // Mở bằng BiometricPrompt gốc của Android. WebAuthn không chạy được trong
+  // WebView của Capacitor nên bắt buộc dùng plugin native ở đây.
   async tryBiometric(): Promise<boolean> {
     if (!Capacitor.isNativePlatform()) return false;
     try {
-      const avail = await NativeBiometric.isAvailable({ useFallback: true });
-      if (!avail.isAvailable) return false;
-      await NativeBiometric.verifyIdentity({
+      const info = await BiometricAuth.checkBiometry();
+      if (!info.isAvailable) return false;
+      await BiometricAuth.authenticate({
         reason: 'Mở sổ tay của bạn',
-        title: 'Xác thực',
-        subtitle: 'Dùng vân tay hoặc khuôn mặt đã lưu trên máy',
-        description: '',
-        useFallback: true,
-        maxAttempts: 3,
+        androidTitle: 'Xác thực',
+        androidSubtitle: 'Dùng vân tay hoặc khuôn mặt đã lưu trên máy',
+        cancelTitle: 'Dùng mã PIN',
+        allowDeviceCredential: false,
       });
       return true;
     } catch {
