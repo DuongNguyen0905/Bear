@@ -40,4 +40,19 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- Android 13+ bắt buộc xin quyền này, không có thì thông báo nhắc nhật ký
+         và cảnh báo mất chuỗi sẽ không bao giờ hiện ra. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- Đặt lịch đúng giờ trên Android 12+ (thông báo dùng allowWhileIdle). -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+
+    <!-- Giữ lại lịch nhắc sau khi tắt/mở lại máy. -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
+    <!-- Mở khoá bằng vân tay/khuôn mặt. -->
+    <uses-permission android:name="android.permission.USE_BIOMETRIC" />
+    <uses-permission android:name="android.permission.USE_FINGERPRINT" />
 </manifest>
