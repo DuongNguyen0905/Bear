@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { financeService } from '../services/financeService';
 import { lockService } from '../services/lockService';
 import { notificationService } from '../services/notificationService';
-import { ChevronLeft, Sun, Moon, Fingerprint, Bell, Type } from 'lucide-react';
+import { ChevronLeft, Sun, Moon, Fingerprint, Bell, Type, FolderSync } from 'lucide-react';
+import { writeAutoBackup, readAutoBackup, importDexieBackupFromString } from '../utils/backup';
 
 const Settings: React.FC = () => {
   const navigate = useNavigate();
@@ -14,6 +15,8 @@ const Settings: React.FC = () => {
   const [pinInput, setPinInput] = useState('');
   const [reminderTime, setReminderTime] = useState('21:00');
   const [streakWarnTime, setStreakWarnTime] = useState('20:00');
+  const [autoBackupOn, setAutoBackupOn] = useState(false);
+  const [backupStatus, setBackupStatus] = useState('');
 
   useEffect(() => { load(); }, []);
 
@@ -27,6 +30,51 @@ const Settings: React.FC = () => {
     setReminderTime(rt);
     const sw = await financeService.getSetting<string>('streakWarnTime', '20:00');
     setStreakWarnTime(sw);
+    setAutoBackupOn(await financeService.getSetting<boolean>('autoBackupEnabled', false));
+  };
+
+  const toggleAutoBackup = async () => {
+    const next = !autoBackupOn;
+    setAutoBackupOn(next);
+    await financeService.setSetting('autoBackupEnabled', next);
+    if (next) {
+      setBackupStatus('Đang sao lưu...');
+      const ts = await writeAutoBackup();
+      if (ts) {
+        await financeService.setSetting('lastSeenBackupTimestamp', ts);
+        setBackupStatus('Đã sao lưu lúc ' + new Date(ts).toLocaleTimeString('vi-VN'));
+      } else {
+        setBackupStatus('Không sao lưu được — chỉ hoạt động trên app đã cài, không phải bản xem thử trên web.');
+      }
+    }
+  };
+
+  const backupNow = async () => {
+    setBackupStatus('Đang sao lưu...');
+    const ts = await writeAutoBackup();
+    if (ts) {
+      await financeService.setSetting('lastSeenBackupTimestamp', ts);
+      setBackupStatus('Đã sao lưu lúc ' + new Date(ts).toLocaleTimeString('vi-VN'));
+    } else {
+      setBackupStatus('Không sao lưu được — chỉ hoạt động trên app đã cài, không phải bản xem thử trên web.');
+    }
+  };
+
+  const checkAndRestore = async () => {
+    setBackupStatus('Đang kiểm tra...');
+    const remote = await readAutoBackup();
+    if (!remote) {
+      setBackupStatus('Chưa tìm thấy file sao lưu nào trong thư mục Documents/SoTayBackup.');
+      return;
+    }
+    const lastSeen = await financeService.getSetting<number>('lastSeenBackupTimestamp', 0);
+    if (remote.timestamp <= lastSeen) {
+      setBackupStatus('Không có bản mới hơn.');
+      return;
+    }
+    await importDexieBackupFromString(remote.json);
+    await financeService.setSetting('lastSeenBackupTimestamp', remote.timestamp);
+    setBackupStatus('Đã khôi phục bản lúc ' + new Date(remote.timestamp).toLocaleString('vi-VN') + '.');
   };
 
   const applyTheme = async (t: 'dark' | 'light') => {
@@ -114,10 +162,27 @@ const Settings: React.FC = () => {
         <p style={{ margin: '10px 0 0 0', fontSize: '12px', color: 'var(--text-muted)' }}>Thông báo lặp lại mỗi ngày đúng giờ này.</p>
       </div>
 
-      <div className="card glass-panel" style={{ padding: '20px', borderRadius: '20px' }}>
+      <div className="card glass-panel" style={{ padding: '20px', borderRadius: '20px', marginBottom: '20px' }}>
         <h4 style={{ margin: '0 0 14px 0', fontSize: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}><Bell size={18} color="var(--danger)" /> Cảnh báo mất chuỗi</h4>
         <input type="time" value={streakWarnTime} onChange={(e) => saveStreakWarnTime(e.target.value)} style={{ width: 'auto' }} />
         <p style={{ margin: '10px 0 0 0', fontSize: '12px', color: 'var(--text-muted)' }}>Nếu đến giờ này mà hôm nay chưa ghi gì, app sẽ nhắc để bạn không mất chuỗi ngày liên tiếp.</p>
+      </div>
+
+      <div className="card glass-panel" style={{ padding: '20px', borderRadius: '20px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h4 style={{ margin: 0, fontSize: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}><FolderSync size={18} color="var(--primary)" /> Tự động sao lưu 2 máy</h4>
+          <button onClick={toggleAutoBackup} style={{ width: '46px', height: '26px', borderRadius: '13px', background: autoBackupOn ? 'var(--primary)' : 'rgba(255,255,255,0.15)', position: 'relative', transition: 'background 150ms' }}>
+            <span style={{ position: 'absolute', top: '3px', left: autoBackupOn ? '23px' : '3px', width: '20px', height: '20px', borderRadius: '50%', background: 'white', transition: 'left 150ms' }} />
+          </button>
+        </div>
+        <p style={{ margin: '10px 0 14px 0', fontSize: '12px', color: 'var(--text-muted)', lineHeight: 1.6 }}>
+          App tự ghi file dữ liệu vào thư mục <strong>Documents/SoTayBackup</strong> mỗi khi bạn rời app. Để đồng bộ 2 máy qua Google Drive, cài thêm 1 app đồng bộ thư mục (VD "Autosync for Google Drive") trên <strong>cả 2 máy</strong>, trỏ vào đúng thư mục này, đăng nhập cùng 1 tài khoản Drive. Mở lại app, nếu có bản mới từ máy kia sẽ được hỏi khôi phục (tự gộp, không mất dữ liệu).
+        </p>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button onClick={backupNow} style={{ flex: 1, padding: '12px', borderRadius: '12px', background: 'rgba(255,255,255,0.06)', color: 'var(--text-main)', fontWeight: 600, fontSize: '13px' }}>Sao lưu ngay</button>
+          <button onClick={checkAndRestore} style={{ flex: 1, padding: '12px', borderRadius: '12px', background: 'rgba(255,255,255,0.06)', color: 'var(--text-main)', fontWeight: 600, fontSize: '13px' }}>Kiểm tra bản mới</button>
+        </div>
+        {backupStatus && <p style={{ margin: '10px 0 0 0', fontSize: '12px', color: 'var(--primary)' }}>{backupStatus}</p>}
       </div>
 
       {showPinSetup && (
