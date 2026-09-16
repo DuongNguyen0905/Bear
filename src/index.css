@@ -10,9 +10,9 @@
   --text-muted: #8b949e;
   
   /* Gemini Gradient Colors */
-  --primary: #58a6ff;
-  --primary-dark: #1f6feb;
-  --secondary: #9b72cb;
+  --primary: #4fd1c5;
+  --primary-dark: #2bb8ac;
+  --secondary: #a78bfa;
   --danger: #ff7b72;
   /* Nền nút đặc màu đỏ + chữ trắng dùng --danger trực tiếp chỉ đạt tỉ lệ
      tương phản ~2.5:1 (dưới ngưỡng khuyến nghị 3:1 cho chữ đậm) — dùng bản
@@ -22,13 +22,13 @@
   --success: #2ea043;
   --warning: #d29922;
 
-  --gemini-grad: linear-gradient(135deg, #4285f4, #9b72cb, #d96570, #9b72cb, #4285f4);
-  --gemini-grad-subtle: linear-gradient(135deg, rgba(66, 133, 244, 0.2), rgba(155, 114, 203, 0.2), rgba(217, 101, 112, 0.2));
+  --gemini-grad: linear-gradient(135deg, #4fd1c5, #a78bfa, #ff9a76, #a78bfa, #4fd1c5);
+  --gemini-grad-subtle: linear-gradient(135deg, rgba(79, 209, 197, 0.2), rgba(167, 139, 250, 0.2), rgba(255, 154, 118, 0.2));
   
   --shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.2);
   --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.4);
   --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.6);
-  --shadow-glow: 0 0 20px rgba(155, 114, 203, 0.3);
+  --shadow-glow: 0 0 20px rgba(167, 139, 250, 0.3);
   
   --radius-sm: 10px;
   --radius-md: 18px;
@@ -74,11 +74,16 @@ input, textarea, select, [contenteditable="true"] {
   user-select: auto;
 }
 
+html {
+  transition: background-color var(--transition-smooth);
+}
+
 body {
   font-family: 'Be Vietnam Pro', -apple-system, sans-serif;
   background-color: var(--bg-main);
   background-image: var(--bg-gradient);
   color: var(--text-main);
+  transition: background-color var(--transition-smooth), background-image var(--transition-smooth), color var(--transition-smooth);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow: hidden;
@@ -117,10 +122,10 @@ body {
   width: 200%;
   height: 200%;
   background: 
-    radial-gradient(circle at 50% 50%, rgba(66, 133, 244, 0.18), transparent 50%),
-    radial-gradient(circle at 80% 20%, rgba(155, 114, 203, 0.18), transparent 50%),
-    radial-gradient(circle at 20% 80%, rgba(217, 101, 112, 0.18), transparent 50%),
-    radial-gradient(circle at 80% 80%, rgba(66, 133, 244, 0.12), transparent 50%);
+    radial-gradient(circle at 50% 50%, rgba(79, 209, 197, 0.18), transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(167, 139, 250, 0.18), transparent 50%),
+    radial-gradient(circle at 20% 80%, rgba(255, 154, 118, 0.16), transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(79, 209, 197, 0.12), transparent 50%);
   animation: geminiLiquid 20s cubic-bezier(0.4, 0, 0.2, 1) infinite alternate;
   z-index: -1;
   pointer-events: none;
@@ -159,7 +164,7 @@ body {
   padding: 18px;
   box-shadow: var(--shadow-sm), inset 0 1px 0 rgba(255, 255, 255, 0.09);
   margin-bottom: 16px;
-  transition: transform var(--transition-spring), box-shadow var(--transition-normal), background var(--transition-normal), border-color var(--transition-normal);
+  transition: transform var(--transition-spring), box-shadow var(--transition-normal), background var(--transition-smooth), border-color var(--transition-smooth);
   position: relative;
   overflow: hidden;
 }
@@ -289,7 +294,7 @@ input, textarea, select {
   color: var(--text-main);
   font-size: 16px;
   outline: none;
-  transition: all var(--transition-normal);
+  transition: background-color var(--transition-smooth), border-color var(--transition-fast), box-shadow var(--transition-fast), color var(--transition-smooth);
   backdrop-filter: blur(12px) saturate(var(--glass-saturate));
   -webkit-backdrop-filter: blur(12px) saturate(var(--glass-saturate));
 }
@@ -519,9 +524,9 @@ input[type="color"]::-webkit-color-swatch {
 
 [data-theme="light"] .app-container::before {
   background:
-    radial-gradient(circle at 50% 50%, rgba(66, 133, 244, 0.10), transparent 50%),
-    radial-gradient(circle at 80% 20%, rgba(155, 114, 203, 0.10), transparent 50%),
-    radial-gradient(circle at 20% 80%, rgba(217, 101, 112, 0.10), transparent 50%);
+    radial-gradient(circle at 50% 50%, rgba(79, 209, 197, 0.12), transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(167, 139, 250, 0.12), transparent 50%),
+    radial-gradient(circle at 20% 80%, rgba(255, 154, 118, 0.10), transparent 50%);
 }
 
 [data-theme="light"] input, [data-theme="light"] textarea, [data-theme="light"] select {
