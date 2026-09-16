@@ -8,6 +8,7 @@ import Home from './pages/Home';
 import { DateProvider } from './contexts/DateContext';
 import { migrateDataToDexie } from './utils/migrate';
 import { lockService } from './services/lockService';
+import { notificationService } from './services/notificationService';
 import { financeService } from './services/financeService';
 import BackButtonHandler from './components/BackButtonHandler';
 
@@ -31,6 +32,9 @@ const App: React.FC = () => {
       document.documentElement.setAttribute('data-theme', t);
       const fs = await financeService.getSetting<number>('fontScale', 100);
       (document.documentElement.style as any).zoom = `${fs}%`;
+      const diaryTime = await financeService.getSetting<string>('diaryReminderTime', '21:00');
+      const streakTime = await financeService.getSetting<string>('streakWarnTime', '20:00');
+      notificationService.rescheduleFromSettings(diaryTime, streakTime);
     })();
   }, []);
 
