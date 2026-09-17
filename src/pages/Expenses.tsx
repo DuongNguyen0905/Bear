@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { financeService } from '../services/financeService';
+import { useNavigate } from 'react-router-dom';
 import { useDate } from '../contexts/DateContext';
 import { Settings, Plus, ChevronLeft, ChevronDown, TrendingDown, TrendingUp, PieChart as PieChartIcon, AlertTriangle, CheckCircle, Activity, PiggyBank, Camera, Edit2, Save, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
@@ -12,6 +13,7 @@ import { formatThousands, stripThousands } from '../utils/formatNumber';
 
 const Expenses: React.FC = () => {
   const { dateKey, selectedDate } = useDate();
+  const navigate = useNavigate();
   
   const [stats, setStats] = useState<any>({ totalIncome: 0, totalExpense: 0, balance: 0, savingsRate: 0, todayExpense: 0, avgDailyExpense: 0 });
   const [budgetStatus, setBudgetStatus] = useState<any>({ daysToSalary: 0, currentGlobalBalance: 0, safeDailyLimit: 0, todayExpense: 0, message: '', status: 'normal', salaryDay: 5 });
@@ -242,7 +244,7 @@ const Expenses: React.FC = () => {
           </p>
         </div>
         <button 
-          onClick={() => setShowSettings(true)}
+          onClick={() => navigate('/settings')}
           style={{ 
             background: 'white', border: 'none', borderRadius: '50%', 
             width: '44px', height: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center',
