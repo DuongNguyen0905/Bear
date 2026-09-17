@@ -4,7 +4,7 @@ import { financeService } from '../services/financeService';
 import { lockService } from '../services/lockService';
 import { notificationService } from '../services/notificationService';
 import { ChevronLeft, Sun, Moon, Fingerprint, Bell, Type, FolderSync } from 'lucide-react';
-import { writeAutoBackup, readAutoBackup, importDexieBackupFromString } from '../utils/backup';
+import { writeAutoBackup, readAutoBackup, importDexieBackupFromString, exportDexieBackup, importDexieBackup } from '../utils/backup';
 
 const Settings: React.FC = () => {
   const navigate = useNavigate();
@@ -17,6 +17,8 @@ const Settings: React.FC = () => {
   const [streakWarnTime, setStreakWarnTime] = useState('20:00');
   const [autoBackupOn, setAutoBackupOn] = useState(false);
   const [backupStatus, setBackupStatus] = useState('');
+  const [importing, setImporting] = useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   useEffect(() => { load(); }, []);
 
@@ -57,6 +59,34 @@ const Settings: React.FC = () => {
       setBackupStatus('Đã sao lưu lúc ' + new Date(ts).toLocaleTimeString('vi-VN'));
     } else {
       setBackupStatus('Không sao lưu được — chỉ hoạt động trên app đã cài, không phải bản xem thử trên web.');
+    }
+  };
+
+  const exportNow = async () => {
+    setBackupStatus('Đang xuất file...');
+    try {
+      await exportDexieBackup();
+      setBackupStatus('Đã xuất file — chọn nơi lưu/chia sẻ vừa hiện ra.');
+    } catch {
+      setBackupStatus('Xuất file thất bại.');
+    }
+  };
+
+  const pickFileToImport = () => fileInputRef.current?.click();
+
+  const onFileChosen = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setImporting(true);
+    setBackupStatus('Đang nhập dữ liệu...');
+    try {
+      await importDexieBackup(file);
+      setBackupStatus('Đã nhập dữ liệu từ "' + file.name + '" — mở lại các trang để thấy dữ liệu mới.');
+    } catch (err: any) {
+      setBackupStatus('Nhập thất bại: ' + (err?.message || 'file không đúng định dạng.'));
+    } finally {
+      setImporting(false);
     }
   };
 
@@ -183,6 +213,18 @@ const Settings: React.FC = () => {
           <button onClick={checkAndRestore} style={{ flex: 1, padding: '12px', borderRadius: '12px', background: 'rgba(255,255,255,0.06)', color: 'var(--text-main)', fontWeight: 600, fontSize: '13px' }}>Kiểm tra bản mới</button>
         </div>
         {backupStatus && <p style={{ margin: '10px 0 0 0', fontSize: '12px', color: 'var(--primary)' }}>{backupStatus}</p>}
+      </div>
+
+      <div className="card glass-panel" style={{ padding: '20px', borderRadius: '20px' }}>
+        <h4 style={{ margin: '0 0 14px 0', fontSize: '15px' }}>Xuất / Nhập file thủ công</h4>
+        <p style={{ margin: '0 0 14px 0', fontSize: '12px', color: 'var(--text-muted)' }}>
+          Dùng khi bạn đã có sẵn 1 file sao lưu .json (VD nhận qua Zalo/email) muốn nhập vào app, hoặc muốn tự xuất ra để lưu/chia sẻ.
+        </p>
+        <input ref={fileInputRef} type="file" accept="application/json,.json" onChange={onFileChosen} style={{ display: 'none' }} />
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button onClick={exportNow} style={{ flex: 1, padding: '12px', borderRadius: '12px', background: 'rgba(255,255,255,0.06)', color: 'var(--text-main)', fontWeight: 600, fontSize: '13px' }}>Xuất file</button>
+          <button onClick={pickFileToImport} disabled={importing} className="btn-primary" style={{ flex: 1, fontSize: '13px' }}>{importing ? 'Đang nhập...' : 'Chọn file để nhập'}</button>
+        </div>
       </div>
 
       {showPinSetup && (
