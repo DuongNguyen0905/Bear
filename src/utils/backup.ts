@@ -220,8 +220,9 @@ function mergeSettings(local: Setting[], incoming: Setting[]): Setting[] {
       const unionCats = [...merged[idx].value];
       for (const cat of s.value) if (!unionCats.includes(cat)) unionCats.push(cat);
       merged[idx] = { key: s.key, value: unionCats };
+    } else {
+      merged[idx] = s;
     }
-    // Các key khác: giữ nguyên giá trị đang có trên máy.
   }
   return merged;
 }
