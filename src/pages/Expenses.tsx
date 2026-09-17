@@ -46,6 +46,7 @@ const Expenses: React.FC = () => {
   const [showSavingsModal, setShowSavingsModal] = useState(false);
   const [editingMonth, setEditingMonth] = useState<string | null>(null);
   const [editInitialBalance, setEditInitialBalance] = useState<string>('');
+  const [editExpense, setEditExpense] = useState<string>('');
 
   const [editingTransactionId, setEditingTransactionId] = useState<string | null>(null);
   const [confirmDeleteTransaction, setConfirmDeleteTransaction] = useState<string | null>(null);
@@ -199,6 +200,7 @@ const Expenses: React.FC = () => {
 
   const savePastInitialBalance = async (monthKey: string) => {
     await financeService.setSetting(`initialBalance_${monthKey}`, Number(editInitialBalance) || 0);
+    await financeService.setSetting(`expenseOverride_${monthKey}`, Number(editExpense) || 0);
     setEditingMonth(null);
     loadData();
   };
@@ -629,7 +631,19 @@ const Expenses: React.FC = () => {
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', fontSize: '13px', marginBottom: '12px' }}>
                       <div><span style={{ color: 'var(--text-muted)' }}>Tổng Thu:</span> <br/> <strong style={{ color: 'var(--success)' }}>{detail.income.toLocaleString('vi-VN')} đ</strong></div>
-                      <div><span style={{ color: 'var(--text-muted)' }}>Tổng Chi:</span> <br/> <strong style={{ color: 'var(--danger)' }}>{detail.expense.toLocaleString('vi-VN')} đ</strong></div>
+                      <div>
+                        <span style={{ color: 'var(--text-muted)' }}>Tổng Chi:</span> <br/>
+                        {editingMonth === detail.month ? (
+                          <input
+                            type="text" inputMode="numeric"
+                            value={formatThousands(editExpense)}
+                            onChange={(e) => setEditExpense(stripThousands(e.target.value))}
+                            style={{ width: '100%', background: 'transparent', border: 'none', borderBottom: '1px solid var(--danger)', color: 'var(--danger)', fontSize: '16px', fontWeight: 'bold', outline: 'none', padding: '4px 0' }}
+                          />
+                        ) : (
+                          <strong style={{ color: 'var(--danger)' }}>{detail.expense.toLocaleString('vi-VN')} đ</strong>
+                        )}
+                      </div>
                     </div>
 
                     <div style={{ background: 'rgba(0,0,0,0.1)', padding: '10px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -654,7 +668,7 @@ const Expenses: React.FC = () => {
                           <Save size={16} /> Lưu
                         </button>
                       ) : (
-                        <button onClick={() => { setEditingMonth(detail.month); setEditInitialBalance(detail.initialBalance.toString()); }} style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid var(--border-glass)', borderRadius: '8px', padding: '8px', color: 'var(--text-main)' }}>
+                        <button onClick={() => { setEditingMonth(detail.month); setEditInitialBalance(detail.initialBalance.toString()); setEditExpense(detail.expense.toString()); }} style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid var(--border-glass)', borderRadius: '8px', padding: '8px', color: 'var(--text-main)' }}>
                           <Edit2 size={16} />
                         </button>
                       )}
