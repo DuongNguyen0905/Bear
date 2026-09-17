@@ -101,11 +101,16 @@ export const financeService = {
 
     const settings = await db.settings.toArray();
     const initialBalanceKeys = settings.filter(s => s.key.startsWith('initialBalance_'));
+    const expenseOverrideKeys = settings.filter(s => s.key.startsWith('expenseOverride_'));
     
     const pastMonths = new Set<string>();
     Object.keys(monthlyStats).forEach(k => pastMonths.add(k));
     initialBalanceKeys.forEach(s => {
        const mKey = s.key.split('_')[1]; // "YYYY-MM"
+       if (mKey < targetPrefix) pastMonths.add(mKey);
+    });
+    expenseOverrideKeys.forEach(s => {
+       const mKey = s.key.split('_')[1];
        if (mKey < targetPrefix) pastMonths.add(mKey);
     });
 
@@ -119,14 +124,16 @@ export const financeService = {
       const initBalSetting = settings.find(s => s.key === `initialBalance_${mKey}`);
       const initBal = initBalSetting ? Number(initBalSetting.value) : 0;
       const stats = monthlyStats[mKey] || { income: 0, expense: 0 };
+      const expenseOverrideSetting = settings.find(s => s.key === `expenseOverride_${mKey}`);
+      const expense = expenseOverrideSetting ? Number(expenseOverrideSetting.value) : stats.expense;
       
-      const monthSaving = initBal + stats.income - stats.expense;
+      const monthSaving = initBal + stats.income - expense;
       totalSavings += monthSaving;
 
       details.push({
         month: mKey,
         income: stats.income,
-        expense: stats.expense,
+        expense,
         initialBalance: initBal,
         saving: monthSaving
       });
