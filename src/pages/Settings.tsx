@@ -82,11 +82,11 @@ const Settings: React.FC = () => {
     setBackupStatus('Đang nhập dữ liệu...');
     try {
       await importDexieBackup(file);
-      setBackupStatus('Đã nhập dữ liệu từ "' + file.name + '" — mở lại các trang để thấy dữ liệu mới.');
+      alert('Đã nhập dữ liệu từ "' + file.name + '". App sẽ tải lại — vào Nhật ký, lướt lịch về đúng ngày trong file để xem (dữ liệu không tự nhảy vào ngày hôm nay).');
+      window.location.reload();
     } catch (err: any) {
-      setBackupStatus('Nhập thất bại: ' + (err?.message || 'file không đúng định dạng.'));
-    } finally {
       setImporting(false);
+      setBackupStatus('Nhập thất bại: ' + (err?.message || 'file không đúng định dạng.'));
     }
   };
 
