@@ -33,6 +33,43 @@ const Home: React.FC = () => {
     else setGreeting('Chào buổi tối 🌙');
   }, [dateKey]);
 
+  // Chuỗi ngày liên tiếp chỉ phụ thuộc "hôm nay/hôm qua", không phụ thuộc
+  // ngày đang xem — trước đây tính lại (kèm tải TOÀN BỘ bảng memories, có
+  // ảnh base64) mỗi lần lướt ngày trên trang chủ, dù kết quả không đổi. Giờ
+  // chỉ tính một lần khi mở trang, đỡ khựng khi chuyển ngày.
+  useEffect(() => {
+    (async () => {
+      const { db } = await import('../utils/db');
+      const mems = await db.memories.toArray();
+      const today = new Date();
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
+      const todayStr = today.toISOString().split('T')[0];
+      const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+      const hasActivity = (e: any) => e && ((e.diary && e.diary.trim() !== '') || (e.photos && e.photos.length > 0));
+      const todayEntry = mems.find((m: any) => m.dateKey === todayStr);
+      const yesterdayEntry = mems.find((m: any) => m.dateKey === yesterdayStr);
+
+      let startDate: Date | null = null;
+      if (hasActivity(todayEntry)) startDate = today;
+      else if (hasActivity(yesterdayEntry)) startDate = yesterday;
+
+      let currentStreak = 0;
+      if (startDate) {
+        const d = new Date(startDate);
+        while (true) {
+          const dStr = d.toISOString().split('T')[0];
+          const e = mems.find((m: any) => m.dateKey === dStr);
+          if (!hasActivity(e)) break;
+          currentStreak++;
+          d.setDate(d.getDate() - 1);
+        }
+      }
+      setStreak(currentStreak);
+    })();
+  }, []);
+
   const loadData = async () => {
     const entry = await memoryService.getByDate(dateKey);
     setTasks(entry.tasks || []);
@@ -44,35 +81,6 @@ const Home: React.FC = () => {
     const month = dateKey.substring(5, 7);
     const bStatus = await financeService.getBudgetStatus(year, month);
     setSafeDailyLimit(bStatus.safeDailyLimit);
-
-    const { db } = await import('../utils/db');
-    const mems = await db.memories.toArray();
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-    const todayStr = today.toISOString().split('T')[0];
-    const yesterdayStr = yesterday.toISOString().split('T')[0];
-
-    const hasActivity = (e: any) => e && ((e.diary && e.diary.trim() !== '') || (e.photos && e.photos.length > 0));
-    const todayEntry = mems.find((m: any) => m.dateKey === todayStr);
-    const yesterdayEntry = mems.find((m: any) => m.dateKey === yesterdayStr);
-
-    let startDate: Date | null = null;
-    if (hasActivity(todayEntry)) startDate = today;
-    else if (hasActivity(yesterdayEntry)) startDate = yesterday;
-
-    let currentStreak = 0;
-    if (startDate) {
-      const d = new Date(startDate);
-      while (true) {
-        const dStr = d.toISOString().split('T')[0];
-        const e = mems.find((m: any) => m.dateKey === dStr);
-        if (!hasActivity(e)) break;
-        currentStreak++;
-        d.setDate(d.getDate() - 1);
-      }
-    }
-    setStreak(currentStreak);
   };
 
   const handleSaveTasks = async (updatedTasks: any[]) => {
