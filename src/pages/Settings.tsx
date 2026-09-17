@@ -199,32 +199,23 @@ const Settings: React.FC = () => {
       </div>
 
       <div className="card glass-panel" style={{ padding: '20px', borderRadius: '20px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h4 style={{ margin: 0, fontSize: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}><FolderSync size={18} color="var(--primary)" /> Tự động sao lưu 2 máy</h4>
-          <button onClick={toggleAutoBackup} style={{ width: '46px', height: '26px', borderRadius: '13px', background: autoBackupOn ? 'var(--primary)' : 'rgba(255,255,255,0.15)', position: 'relative', transition: 'background 150ms' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+          <h4 style={{ margin: 0, fontSize: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}><FolderSync size={18} color="var(--primary)" /> Sao lưu & Khôi phục</h4>
+          <button onClick={toggleAutoBackup} style={{ width: '46px', height: '26px', borderRadius: '13px', background: autoBackupOn ? 'var(--primary)' : 'rgba(255,255,255,0.15)', position: 'relative', transition: 'background 150ms', flexShrink: 0 }}>
             <span style={{ position: 'absolute', top: '3px', left: autoBackupOn ? '23px' : '3px', width: '20px', height: '20px', borderRadius: '50%', background: 'white', transition: 'left 150ms' }} />
           </button>
         </div>
-        <p style={{ margin: '10px 0 14px 0', fontSize: '12px', color: 'var(--text-muted)', lineHeight: 1.6 }}>
-          App tự ghi file dữ liệu vào thư mục <strong>Documents/SoTayBackup</strong> mỗi khi bạn rời app. Để đồng bộ 2 máy qua Google Drive, cài thêm 1 app đồng bộ thư mục (VD "Autosync for Google Drive") trên <strong>cả 2 máy</strong>, trỏ vào đúng thư mục này, đăng nhập cùng 1 tài khoản Drive. Mở lại app, nếu có bản mới từ máy kia sẽ được hỏi khôi phục (tự gộp, không mất dữ liệu).
-        </p>
-        <div style={{ display: 'flex', gap: '10px' }}>
-          <button onClick={backupNow} style={{ flex: 1, padding: '12px', borderRadius: '12px', background: 'rgba(255,255,255,0.06)', color: 'var(--text-main)', fontWeight: 600, fontSize: '13px' }}>Sao lưu ngay</button>
-          <button onClick={checkAndRestore} style={{ flex: 1, padding: '12px', borderRadius: '12px', background: 'rgba(255,255,255,0.06)', color: 'var(--text-main)', fontWeight: 600, fontSize: '13px' }}>Kiểm tra bản mới</button>
-        </div>
-        {backupStatus && <p style={{ margin: '10px 0 0 0', fontSize: '12px', color: 'var(--primary)' }}>{backupStatus}</p>}
-      </div>
-
-      <div className="card glass-panel" style={{ padding: '20px', borderRadius: '20px' }}>
-        <h4 style={{ margin: '0 0 14px 0', fontSize: '15px' }}>Xuất / Nhập file thủ công</h4>
-        <p style={{ margin: '0 0 14px 0', fontSize: '12px', color: 'var(--text-muted)' }}>
-          Dùng khi bạn đã có sẵn 1 file sao lưu .json (VD nhận qua Zalo/email) muốn nhập vào app, hoặc muốn tự xuất ra để lưu/chia sẻ.
+        <p style={{ margin: '6px 0 14px 0', fontSize: '12px', color: 'var(--text-muted)', lineHeight: 1.6 }}>
+          Bật để tự ghi file vào <strong>Documents/SoTayBackup</strong> mỗi khi rời app. Đồng bộ 2 máy: cài app đồng bộ thư mục (VD "Autosync for Google Drive") trên <strong>cả 2 máy</strong>, trỏ vào đúng thư mục này, cùng 1 tài khoản Drive — mở app sẽ tự hỏi khôi phục khi có bản mới. Nếu đã có sẵn file .json (nhận qua Zalo/email), dùng nút <strong>Nhập file</strong> bên dưới.
         </p>
         <input ref={fileInputRef} type="file" accept="application/json,.json" onChange={onFileChosen} style={{ display: 'none' }} />
-        <div style={{ display: 'flex', gap: '10px' }}>
-          <button onClick={exportNow} style={{ flex: 1, padding: '12px', borderRadius: '12px', background: 'rgba(255,255,255,0.06)', color: 'var(--text-main)', fontWeight: 600, fontSize: '13px' }}>Xuất file</button>
-          <button onClick={pickFileToImport} disabled={importing} className="btn-primary" style={{ flex: 1, fontSize: '13px' }}>{importing ? 'Đang nhập...' : 'Chọn file để nhập'}</button>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+          <button onClick={backupNow} style={{ padding: '12px', borderRadius: '12px', background: 'rgba(255,255,255,0.06)', color: 'var(--text-main)', fontWeight: 600, fontSize: '13px' }}>Sao lưu ngay</button>
+          <button onClick={checkAndRestore} style={{ padding: '12px', borderRadius: '12px', background: 'rgba(255,255,255,0.06)', color: 'var(--text-main)', fontWeight: 600, fontSize: '13px' }}>Kiểm tra bản mới</button>
+          <button onClick={exportNow} style={{ padding: '12px', borderRadius: '12px', background: 'rgba(255,255,255,0.06)', color: 'var(--text-main)', fontWeight: 600, fontSize: '13px' }}>Xuất file</button>
+          <button onClick={pickFileToImport} disabled={importing} className="btn-primary" style={{ fontSize: '13px' }}>{importing ? 'Đang nhập...' : 'Nhập file'}</button>
         </div>
+        {backupStatus && <p style={{ margin: '10px 0 0 0', fontSize: '12px', color: 'var(--primary)' }}>{backupStatus}</p>}
       </div>
 
       {showPinSetup && (
