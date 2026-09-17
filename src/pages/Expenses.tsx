@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { financeService } from '../services/financeService';
 import { useDate } from '../contexts/DateContext';
-import { Settings, Plus, ChevronLeft, ChevronDown, TrendingDown, TrendingUp, PieChart as PieChartIcon, AlertTriangle, CheckCircle, Activity, PiggyBank, Camera, Download, Upload, Edit2, Save, Trash2 } from 'lucide-react';
+import { Settings, Plus, ChevronLeft, ChevronDown, TrendingDown, TrendingUp, PieChart as PieChartIcon, AlertTriangle, CheckCircle, Activity, PiggyBank, Camera, Edit2, Save, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { PieChart, Pie, Tooltip, ResponsiveContainer, Cell, Legend } from 'recharts';
-import { exportDexieBackup, importDexieBackup } from '../utils/backup';
 import { useAndroidBack } from '../hooks/useAndroidBack';
 import InlineDropdown from '../components/InlineDropdown';
 import ConfirmDialog from '../components/ConfirmDialog';
@@ -51,7 +50,6 @@ const Expenses: React.FC = () => {
 
   const [isScanning, setIsScanning] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const restoreFileRef = useRef<HTMLInputElement>(null);
 
   useAndroidBack(showSettings, () => setShowSettings(false));
   useAndroidBack(showBudgetModal, () => setShowBudgetModal(false));
@@ -60,11 +58,6 @@ const Expenses: React.FC = () => {
   const settingsT = useClosingTransition(showSettings);
   const budgetModalT = useClosingTransition(showBudgetModal);
   const savingsModalT = useClosingTransition(showSavingsModal);
-
-  const [localBackupBusy, setLocalBackupBusy] = useState(false);
-  const [localBackupMessage, setLocalBackupMessage] = useState<{ text: string; kind: 'success' | 'error' } | null>(null);
-  const [restoreBusy, setRestoreBusy] = useState(false);
-  const [restoreMessage, setRestoreMessage] = useState<{ text: string; kind: 'success' | 'error' } | null>(null);
 
   useEffect(() => {
     loadData();
@@ -199,39 +192,6 @@ const Expenses: React.FC = () => {
       setCategory(newCat.trim());
       setNewCat('');
       await financeService.setSetting('expenseCategories', newCats);
-    }
-  };
-
-  const handleBackup = async () => {
-    setLocalBackupBusy(true);
-    setLocalBackupMessage(null);
-    try {
-      await exportDexieBackup();
-      setLocalBackupMessage({ text: 'Đã lưu file sao lưu vào máy! Bạn có thể chia sẻ file này lên Drive/Zalo/Gmail... để khôi phục trên máy khác.', kind: 'success' });
-    } catch (err: any) {
-      setLocalBackupMessage({ text: err?.message || 'Sao lưu thất bại, thử lại sau.', kind: 'error' });
-    } finally {
-      setLocalBackupBusy(false);
-    }
-  };
-
-  const handleRestore = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setRestoreBusy(true);
-    setRestoreMessage(null);
-    try {
-      // Khôi phục luôn GỘP vào dữ liệu hiện có trên máy (không ghi đè) — xem
-      // logic gộp trong importDexieBackup — nên không cần hỏi xác nhận nữa.
-      await importDexieBackup(file);
-      setRestoreMessage({ text: 'Đã khôi phục và gộp dữ liệu thành công!', kind: 'success' });
-      loadData();
-    } catch (err: any) {
-      setRestoreMessage({ text: err?.message || 'Khôi phục thất bại, thử lại sau.', kind: 'error' });
-    } finally {
-      setRestoreBusy(false);
-      if (restoreFileRef.current) restoreFileRef.current.value = '';
     }
   };
 
@@ -576,36 +536,9 @@ const Expenses: React.FC = () => {
           </div>
           
           <div style={{ flex: 1, padding: '20px', overflowY: 'auto' }}>
-            <div className="card glass-panel" style={{ padding: '20px', borderRadius: '16px', marginBottom: '30px' }}>
-              <h4 style={{ margin: '0 0 15px 0', color: 'var(--text-main)' }}>Dữ liệu ứng dụng</h4>
-              <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '10px' }}>Vì ứng dụng chạy offline, bạn nên thường xuyên sao lưu dữ liệu để tránh mất mát khi đổi điện thoại.</p>
-              <p style={{ fontSize: '12px', color: 'var(--primary)', marginBottom: '15px', fontWeight: 600 }}>💡 Dùng chung 1 tài khoản trên 2 máy: bấm "Lưu lên Drive" → khi bảng chia sẻ hiện ra, chọn biểu tượng <strong>Drive</strong> — file tự lưu vào Google Drive của tài khoản đang đăng nhập. Sang máy kia, đăng nhập cùng tài khoản đó trong app Drive, tải file về rồi bấm "Khôi Phục".</p>
-              
-              <div style={{ display: 'flex', gap: '10px', marginBottom: (localBackupMessage || restoreMessage) ? '10px' : 0 }}>
-                <button disabled={localBackupBusy} onClick={handleBackup} className="btn-primary" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '12px', borderRadius: '10px', background: 'rgba(255,255,255,0.1)', color: 'var(--primary)', border: '1px solid var(--border-glass)', opacity: localBackupBusy ? 0.6 : 1 }}>
-                  <Download size={18} /> {localBackupBusy ? 'Đang lưu...' : 'Lưu lên Drive'}
-                </button>
-                <input
-                  type="file" accept=".json"
-                  ref={restoreFileRef}
-                  onChange={handleRestore}
-                  style={{ display: 'none' }}
-                />
-                <button disabled={restoreBusy} onClick={() => restoreFileRef.current?.click()} className="btn-primary" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '12px', borderRadius: '10px', opacity: restoreBusy ? 0.6 : 1 }}>
-                  <Upload size={18} /> {restoreBusy ? 'Đang khôi phục...' : 'Khôi Phục'}
-                </button>
-              </div>
-              {localBackupMessage && (
-                <p style={{ fontSize: '12px', margin: 0, color: localBackupMessage.kind === 'success' ? 'var(--success)' : '#ff6b6b' }}>
-                  {localBackupMessage.text}
-                </p>
-              )}
-              {restoreMessage && (
-                <p style={{ fontSize: '12px', margin: 0, color: restoreMessage.kind === 'success' ? 'var(--success)' : '#ff6b6b' }}>
-                  {restoreMessage.text}
-                </p>
-              )}
-            </div>
+            <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '20px', lineHeight: 1.6 }}>
+              Sao lưu và khôi phục dữ liệu (kể cả đồng bộ 2 máy) đã chuyển sang trang <strong>Cài đặt chính</strong> — bấm biểu tượng bánh răng ở trang chủ.
+            </p>
 
             <button onClick={saveSettings} className="btn-primary" style={{ width: '100%', padding: '16px', borderRadius: '14px', fontSize: '16px' }}>
               Lưu thay đổi
