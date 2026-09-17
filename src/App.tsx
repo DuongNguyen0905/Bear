@@ -53,18 +53,25 @@ const App: React.FC = () => {
     })();
   }, []);
 
-  // Khoá lại khi app bị đưa xuống nền rồi mở lại (bấm Home, chuyển app...).
+  // Khoá lại khi app bị đưa xuống nền đủ lâu (>20s) rồi mở lại. Mở bàn chọn
+  // file, hộp thoại chia sẻ hay xin quyền hệ thống cũng tạm đưa app ra nền
+  // rất ngắn — không phải người dùng thực sự rời app, nên trước đây bị bắt
+  // nhập lại mật khẩu liên tục.
   useEffect(() => {
+    let backgroundedAt: number | null = null;
+    const LOCK_GRACE_MS = 20_000;
     const handle = CapApp.addListener('appStateChange', async ({ isActive }) => {
       if (!isActive) {
-        if (await lockService.isEnabled()) setLocked(true);
-        // Ghi bản sao lưu ngay khi rời app — để app đồng bộ ngoài kịp thấy
-        // file đổi và đẩy lên Drive trước khi máy có thể tắt hẳn.
+        backgroundedAt = Date.now();
         const autoBackupOn = await financeService.getSetting<boolean>('autoBackupEnabled', false);
         if (autoBackupOn) {
           const ts = await writeAutoBackup();
           if (ts) await financeService.setSetting('lastSeenBackupTimestamp', ts);
         }
+      } else if (backgroundedAt !== null) {
+        const elapsed = Date.now() - backgroundedAt;
+        backgroundedAt = null;
+        if (elapsed > LOCK_GRACE_MS && await lockService.isEnabled()) setLocked(true);
       }
     });
     return () => { handle.then((h) => h.remove()); };
