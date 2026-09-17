@@ -52,7 +52,7 @@
      lên trên — vừa nổi bật hơn (không "gần như vô hình"), vừa ổn định độ
      tương phản cho chữ vì nền không còn phụ thuộc hoàn toàn vào thứ đang
      "chảy" phía sau.  */
-  --glass-blur: 22px;
+  --glass-blur: 10px;
   --glass-saturate: 145%;
   --glass-bg: rgba(22, 22, 34, 0.55);
   --glass-bg-strong: rgba(30, 30, 46, 0.68);
