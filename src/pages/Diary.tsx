@@ -55,9 +55,15 @@ const Diary: React.FC = () => {
     reader.onload = (event) => {
       const img = new Image();
       img.onload = async () => {
+        // Ảnh chụp thẳng từ camera có thể tới 4000x3000px trở lên — lưu
+        // nguyên bản base64 vào cơ sở dữ liệu khiến app ngày càng nặng và
+        // khựng khi có nhiều ảnh. Giảm về tối đa 1440px cạnh dài trước khi lưu,
+        // đủ nét để xem trong app mà nhẹ hơn nhiều lần.
+        const MAX_DIMENSION = 1440;
+        const scale = Math.min(1, MAX_DIMENSION / Math.max(img.width, img.height));
         const canvas = document.createElement('canvas');
-        canvas.width = img.width;
-        canvas.height = img.height;
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
         const ctx = canvas.getContext('2d');
         if (ctx) {
           ctx.filter = VIVID_FILTER;
